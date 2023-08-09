@@ -9,59 +9,57 @@ const UNCOMPRESSED_WIF_LEN: usize = 51;
 const COMPRESSED_WIF_LEN: usize = 52;
 const ADDRESS_LEN: usize = 34;
 
-/// Recibe la private key en bytes.
-/// Devuelve la address comprimida
+/// Receives the private key in bytes.
+/// Returns the compressed address.
 pub fn generate_address(private_key: &[u8]) -> Result<String, Box<dyn Error>> {
-    // se aplica el algoritmo de ECDSA a la clave privada , luego
-    // a la clave publica
+    // Applies the ECDSA algorithm to the private key, then to the public key
     let secp: secp256k1::Secp256k1<secp256k1::All> = secp256k1::Secp256k1::new();
     let key = SecretKey::from_slice(private_key)?;
     let public_key: secp256k1::PublicKey = secp256k1::PublicKey::from_secret_key(&secp, &key);
     let public_key_bytes_compressed = public_key.serialize();
 
-    // Se aplica RIPEMD160(SHA256(ECDSA(public_key)))
+    // Applies RIPEMD160(SHA256(ECDSA(public_key)))
     let ripemd160_hash = hash_160(&public_key_bytes_compressed);
 
-    // Añadir el byte de versión (0x00) al comienzo del hash RIPEMD-160
+    // Add the version byte (0x00) at the beginning of the RIPEMD-160 hash
     let mut extended_hash = vec![0x6f];
     extended_hash.extend_from_slice(&ripemd160_hash);
 
-    // Calcular el checksum (doble hash SHA-256) del hash extendido
+    // Calculate the checksum (double SHA-256 hash) of the extended hash
     let checksum = Sha256::digest(Sha256::digest(&extended_hash));
 
-    // Añadir los primeros 4 bytes del checksum al final del hash extendido
+    // Add the first 4 bytes of the checksum at the end of the extended hash
     extended_hash.extend_from_slice(&checksum[..4]);
 
-    // Codificar el hash extendido en Base58
+    // Decode the extended hash to base58 format
     let encoded: bs58::encode::EncodeBuilder<&Vec<u8>> = bs58::encode(&extended_hash);
     Ok(encoded.into_string())
 }
 
-/// Recibe el public key comprimido (33 bytes)
-/// Aplica RIPEMD160(SHA256(ECDSA(public_key)))
+/// Receives the compressed public key (33 bytes).
+/// Applies RIPEMD160(SHA256(ECDSA(public_key))).
 pub fn hash_160(public_key_bytes_compressed: &[u8]) -> [u8; 20] {
     let sha256_hash = Sha256::digest(public_key_bytes_compressed);
     *ripemd160::Hash::hash(&sha256_hash).as_byte_array()
 }
 
-/// Recibe la address comprimida
-/// Devuelve el PubkeyHash
-/// Si la address es invalida, devuelve error
+/// Receives the compressed address.
+/// Returns the PubkeyHash. If the address is invalid, returns an error.
 pub fn get_pubkey_hash_from_address(address: &str) -> Result<[u8; 20], Box<dyn Error>> {
-    //se decodifican de &str a bytes , desde el formate base58  a bytes
+    // decoded from &str to bytes, from base58 format to bytes
     validate_address(address)?;
     let address_decoded_bytes = bs58::decode(address).into_vec()?;
     let lenght_bytes = address_decoded_bytes.len();
     let mut pubkey_hash: [u8; 20] = [0; 20];
 
-    // el pubkey hash es el que compone la address
-    // le saco el byte de la red y el checksum del final
+    // the pubkey hash is the one that makes up the address,
+    // removes the network byte and the checksum from the end
     pubkey_hash.copy_from_slice(&address_decoded_bytes[1..(lenght_bytes - 4)]);
 
     Ok(pubkey_hash)
 }
 
-/// Devuelve la clave publica comprimida (33 bytes) a partir de la privada
+/// Returns the compressed public key (33 bytes) from the private key
 pub fn get_pubkey_compressed(private_key: &str) -> Result<[u8; 33], Box<dyn Error>> {
     let private_key = decode_wif_private_key(private_key)?;
     let secp: secp256k1::Secp256k1<secp256k1::All> = secp256k1::Secp256k1::new();
@@ -70,17 +68,17 @@ pub fn get_pubkey_compressed(private_key: &str) -> Result<[u8; 33], Box<dyn Erro
     Ok(public_key.serialize())
 }
 
-/// Recibe una bitcoin address.
-/// Revisa el checksum y devuelve error si es inválida.
+/// Receives a bitcoin address.
+/// Checks the checksum and returns an error if it is invalid.
 pub fn validate_address(address: &str) -> Result<(), Box<dyn Error>> {
     if address.len() != ADDRESS_LEN {
         return Err(Box::new(std::io::Error::new(
             io::ErrorKind::Other,
-            "La cantidad de caracteres de la address es inválida.",
+            "The address is invalid. It has an invalid length.",
         )));
     }
-    // validacion checksum: evita errores de tipeo en la address
-    // Calcular el checksum (doble hash SHA-256) del hash extendido
+    // Checksum validation: avoids typing errors in the address
+    // Calculate the checksum (double SHA-256 hash) of the extended hash
     let address_decoded_bytes = bs58::decode(address).into_vec()?;
     let lenght_bytes = address_decoded_bytes.len();
     let checksum_hash = Sha256::digest(Sha256::digest(
@@ -91,14 +89,14 @@ pub fn validate_address(address: &str) -> Result<(), Box<dyn Error>> {
     if checksum_address != &checksum_hash[..4] {
         return Err(Box::new(std::io::Error::new(
             io::ErrorKind::Other,
-            "La dirección es inválida, falló la validación del checksum",
+            "The address is invalid. The checksum is invalid.",
         )));
     }
     Ok(())
 }
 
-/// Recibe una private key en bytes y una address comprimida.
-/// Devuelve true o false dependiendo si se corresponden entre si o no.
+/// Receives a private key in bytes and a compressed address.
+/// Returns true or false depending on whether they correspond or not.
 pub fn validate_address_private_key(
     private_key: &[u8],
     address: &String,
@@ -112,8 +110,8 @@ pub fn validate_address_private_key(
     Ok(())
 }
 
-/// Recibe la WIF private key, ya sea en formato comprimido o no comprimido.
-/// Devuelve la private key en bytes
+/// Receives the WIF private key, either in compressed or uncompressed format.
+/// Returns the private key in bytes.
 pub fn decode_wif_private_key(wif_private_key: &str) -> Result<[u8; 32], Box<dyn Error>> {
     if wif_private_key.len() < UNCOMPRESSED_WIF_LEN || wif_private_key.len() > COMPRESSED_WIF_LEN {
         return Err(Box::new(std::io::Error::new(
@@ -121,7 +119,7 @@ pub fn decode_wif_private_key(wif_private_key: &str) -> Result<[u8; 32], Box<dyn
             "The WIF private key is invalid. It has an invalid length.",
         )));
     }
-    // Decodificar la clave privada en formato WIF
+    // Decode the private key in WIF format
     let decoded = bs58::decode(wif_private_key).into_vec()?;
     let mut vector = vec![];
     if wif_private_key.len() == UNCOMPRESSED_WIF_LEN {
@@ -137,7 +135,7 @@ pub fn decode_wif_private_key(wif_private_key: &str) -> Result<[u8; 32], Box<dyn
         )));
     }
 
-    // Obtener la clave privada de 32 bytes
+    // Obtain the private key of 32 bytes
     let mut private_key_bytes = [0u8; 32];
     private_key_bytes.copy_from_slice(&vector);
 
@@ -154,24 +152,24 @@ mod test {
     use std::error::Error;
     use std::io;
 
-    /// Genera el pubkey hash a partir de la private key
+    /// Generates the pubkey hash from the private key
     fn generate_pubkey_hash(private_key: &[u8]) -> Result<[u8; 20], Box<dyn Error>> {
         let secp: secp256k1::Secp256k1<secp256k1::All> = secp256k1::Secp256k1::new();
         let key: SecretKey = SecretKey::from_slice(private_key)?;
         let public_key: secp256k1::PublicKey = secp256k1::PublicKey::from_secret_key(&secp, &key);
-        //  se aplica RIPEMD160(SHA256(ECDSA(public_key)))
+        // Apply RIPEMD160(SHA256(ECDSA(public_key)))
         let public_key_compressed = public_key.serialize();
 
-        // Aplica hash160
+        // Apply hash160
         Ok(super::hash_160(&public_key_compressed))
     }
 
-    /// Convierte el str recibido en hexadecimal, a bytes
+    /// Converts the received hexadecimal string into bytes
     fn string_to_32_bytes(input: &str) -> Result<[u8; 32], Box<dyn Error>> {
         if input.len() != 64 {
             return Err(Box::new(std::io::Error::new(
                 io::ErrorKind::Other,
-                "El string recibido es inválido. No tiene el largo correcto",
+                "The received string is invalid. It doesn't have the correct length",
             )));
         }
 
@@ -185,7 +183,7 @@ mod test {
     }
 
     #[test]
-    fn test_decoding_wif_compressed_genera_correctamente_el_private_key(
+    fn test_decoding_wif_compressed_correctly_generates_private_key(
     ) -> Result<(), Box<dyn Error>> {
         // WIF COMPRESSED
         let wif = "cMoBjaYS6EraKLNqrNN8DvN93Nnt6pJNfWkYM8pUufYQB5EVZ7SR";
@@ -199,7 +197,7 @@ mod test {
     }
 
     #[test]
-    fn test_decoding_wif_uncompressed_genera_correctamente_el_private_key(
+    fn test_decoding_wif_uncompressed_correctly_generates_private_key(
     ) -> Result<(), Box<dyn Error>> {
         // WIF UNCOMPRESSED
         let wif = "91dkDNCCaMp2f91sVQRGgdZRw1QY4aptaeZ4vxEvuG5PvZ9hftJ";
@@ -213,7 +211,7 @@ mod test {
     }
 
     #[test]
-    fn test_address_se_genera_correctamente() -> Result<(), Box<dyn Error>> {
+    fn test_address_generation_is_correct() -> Result<(), Box<dyn Error>> {
         let expected_address: &str = "mnEvYsxexfDEkCx2YLEfzhjrwKKcyAhMqV";
         let private_key_wif: &str = "cMoBjaYS6EraKLNqrNN8DvN93Nnt6pJNfWkYM8pUufYQB5EVZ7SR";
         let private_key_bytes = decode_wif_private_key(private_key_wif)?;
@@ -223,14 +221,14 @@ mod test {
     }
 
     #[test]
-    fn test_decodificacion_de_address_valida_devuelve_ok() {
+    fn test_valid_address_decoding_returns_ok() {
         let address = "mpzx6iZ1WX8hLSeDRKdkLatXXPN1GDWVaF";
         let pubkey_hash_expected = get_pubkey_hash_from_address(address);
         assert!(pubkey_hash_expected.is_ok())
     }
 
     #[test]
-    fn test_decodificacion_de_address_genera_pubkey_esperado() -> Result<(), Box<dyn Error>> {
+    fn test_address_decoding_generates_expected_pubkey() -> Result<(), Box<dyn Error>> {
         let address: &str = "mnEvYsxexfDEkCx2YLEfzhjrwKKcyAhMqV";
         let private_key: &str = "cMoBjaYS6EraKLNqrNN8DvN93Nnt6pJNfWkYM8pUufYQB5EVZ7SR";
         let private_key_bytes = decode_wif_private_key(private_key)?;
@@ -241,15 +239,16 @@ mod test {
     }
 
     #[test]
-    fn test_pub_key_hash_se_genera_con_el_largo_correcto() -> Result<(), Box<dyn Error>> {
+    fn test_pub_key_hash_is_generated_with_correct_length() -> Result<(), Box<dyn Error>> {
         let address = "mnEvYsxexfDEkCx2YLEfzhjrwKKcyAhMqV";
         let pub_key_hash = get_pubkey_hash_from_address(address)?;
 
         assert_eq!(pub_key_hash.len(), 20);
         Ok(())
     }
+    
     #[test]
-    fn test_get_pubkey_hash_con_direccion_invalida_da_error() -> Result<(), Box<dyn Error>> {
+    fn test_get_pubkey_hash_with_invalid_address_returns_error() -> Result<(), Box<dyn Error>> {
         let address = "1nEvYsxexfDEkCx2YLEfzhjrwKKcyAhMqV";
         let pub_key_hash_result = get_pubkey_hash_from_address(address);
 
@@ -257,3 +256,4 @@ mod test {
         Ok(())
     }
 }
+
