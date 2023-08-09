@@ -12,16 +12,16 @@ use std::sync::{Arc, RwLock};
 use std::thread;
 use std::time::Duration;
 
-/// Realiza la conexión a los nodos con múltiples threads
-/// Recibe las direcciones IP de los nodos.
-/// Devuelve un vector de sockets o un error si no se pudo completar.
+/// Makes the connection to the nodes with multiple threads.
+/// Receives the IP addresses of the nodes.
+/// Returns a vector of sockets or an error if it could not be completed.
 pub fn handshake_with_nodes(
     config: &Arc<Config>,
     log_sender: &LogSender,
     node_ips: Vec<Ipv4Addr>,
 ) -> Result<Arc<RwLock<Vec<TcpStream>>>, NodeCustomErrors> {
-    write_in_log(&log_sender.info_log_sender, "INICIO DE HANDSHAKE");
-    println!("Realizando handshake con los nodos...");
+    write_in_log(&log_sender.info_log_sender, "START OF HANDSHAKE");
+    println!("making handshake with nodes...");
     let chunk_size = (node_ips.len() as f64 / config.n_threads as f64).ceil() as usize;
     let active_nodes_chunks = Arc::new(RwLock::new(
         node_ips
@@ -62,18 +62,18 @@ pub fn handshake_with_nodes(
         .len();
     write_in_log(
         &log_sender.info_log_sender,
-        format!("{:?} nodos conectados", amount_of_ips).as_str(),
+        format!("{:?} connections made", amount_of_ips).as_str(),
     );
     write_in_log(
         &log_sender.info_log_sender,
-        "Se completo correctamente el handshake\n",
+        "handshake with nodes done successfully!",
     );
     Ok(sockets_lock)
 }
 
-/// Realiza la conexión con todos los nodos de la lista recibida por parámetro.
-/// Guarda el los mismos en la lista de sockets recibida.
-/// En caso de no poder conectarse, continua intentando con el siguiente.
+/// Makes the connection with all the nodes in the list received by parameter.
+/// Stores them in the list of sockets received.
+/// If one can't connect, it continues trying with the next one.
 fn connect_to_nodes(
     config: &Arc<Config>,
     log_sender: &LogSender,
@@ -85,7 +85,7 @@ fn connect_to_nodes(
             Ok(stream) => {
                 write_in_log(
                     &log_sender.info_log_sender,
-                    format!("Conectado correctamente a: {:?}", node).as_str(),
+                    format!("Connected correctly to node: {:?}", node).as_str(),
                 );
                 sockets
                     .write()
@@ -95,27 +95,27 @@ fn connect_to_nodes(
             Err(err) => {
                 write_in_log(
                     &log_sender.error_log_sender,
-                    format!("No se pudo conectar al nodo: {:?}. Error {:?}.", node, err).as_str(),
+                    format!("Can't connect to node: {:?}. Error: {}", node, err).as_str(),
                 );
             }
         };
     }
-    // si no se pudo conectar a ningun nodo devuelvo error
+    // If it couldn't connect to any node, it returns an error
     if sockets
         .read()
         .map_err(|err| NodeCustomErrors::LockError(format!("{}", err)))?
         .is_empty()
     {
         return Err(NodeCustomErrors::HandshakeError(
-            "No se pudo conectar a ningun nodo".to_string(),
+            "Any connection could be made".to_string(),
         ));
     }
     Ok(())
 }
 
-/// Realiza la conexión con un nodo.
-/// Envía y recibe los mensajes necesarios para establecer la conexión
-/// Devuelve el socket o un error
+/// Makes the connection with a node.
+/// Sends and receives the necessary messages to establish the connection.
+/// Returns the socket or an error.
 fn connect_to_node(
     config: &Arc<Config>,
     log_sender: &LogSender,
