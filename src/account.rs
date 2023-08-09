@@ -9,9 +9,9 @@ use crate::custom_errors::NodeCustomErrors;
 use crate::transactions::transaction::Transaction;
 use crate::utxo_tuple::UtxoTuple;
 #[derive(Debug, Clone)]
-/// Representa una cuenta bitcoin
-/// Guarda la address comprimida y la private key (comprimida o no)
-/// También guarda las utxos de la cuenta, transacciones pendientes y confirmadas
+/// Represents a bitcoin account.
+/// Stores the compressed address and the private key (compressed or not).
+/// Also stores the utxos of the account, pending and confirmed transactions.
 pub struct Account {
     pub private_key: String,
     pub address: String,
@@ -22,8 +22,8 @@ pub struct Account {
 
 type TransactionInfo = (String, Transaction, i64);
 impl Account {
-    /// Recibe la address en formato comprimido
-    /// Y la WIF private key, ya sea en formato comprimido o no comprimido
+    /// Receives the address in compressed format and the WIF private key, either in 
+    /// compressed or uncompressed format.
     pub fn new(wif_private_key: String, address: String) -> Result<Account, Box<dyn Error>> {
         let raw_private_key = address_decoder::decode_wif_private_key(wif_private_key.as_str())?;
 
@@ -37,31 +37,32 @@ impl Account {
         })
     }
 
-    /// Devuelve la clave publica comprimida (33 bytes) a partir de la privada
+    /// Returns the compressed public key (33 bytes) from the private key.
     pub fn get_pubkey_compressed(&self) -> Result<[u8; 33], Box<dyn Error>> {
         address_decoder::get_pubkey_compressed(&self.private_key)
     }
-    /// Devuelve la private key decodificada en formato bytes.
+    /// Returns the private key decoded in bytes format.
     pub fn get_private_key(&self) -> Result<[u8; 32], Box<dyn Error>> {
         address_decoder::decode_wif_private_key(self.private_key.as_str())
     }
 
-    /// Devuelve la dirección de la cuenta
+    /// Returns the address of the account.
     pub fn get_address(&self) -> &String {
         &self.address
     }
-    /// Guarda los utxos en la cuenta
+
+    /// Stores the utxos in the account.
     pub fn load_utxos(&mut self, utxos: Vec<UtxoTuple>) {
         self.utxo_set = utxos;
     }
 
-    /// Compara el monto recibido con el balance de la cuenta.
-    /// Devuelve true si el balance es mayor. Caso contrario false
+    /// Compares the amount received with the account balance.
+    /// Returns true if the balance is greater. Otherwise false.
     pub fn has_balance(&self, value: i64) -> bool {
         self.balance() > value
     }
 
-    /// Devuelve el balance de la cuenta
+    /// Returns the balance of the account.
     pub fn balance(&self) -> i64 {
         let mut balance: i64 = 0;
         for utxo in &self.utxo_set {
@@ -69,7 +70,7 @@ impl Account {
         }
         balance
     }
-    /// Devuelve un vector con las utxos a ser gastadas en una transaccion nueva, según el monto recibido.
+    /// Returns a vec with the utxos to be spent in a new transaction, according to the amount received.
     fn get_utxos_for_amount(&mut self, value: i64) -> Vec<UtxoTuple> {
         let mut utxos_to_spend = Vec::new();
         let mut partial_amount: i64 = 0;
@@ -79,7 +80,7 @@ impl Account {
             if (partial_amount + self.utxo_set[position].balance()) < value {
                 partial_amount += self.utxo_set[position].balance();
                 utxos_to_spend.push(self.utxo_set[position].clone());
-                // No corresponde removerlas mientras la tx no está confirmada
+                // As the tx is not confirmed yet, it is not necessary to remove them
             } else {
                 utxos_to_spend
                     .push(self.utxo_set[position].utxos_to_spend(value, &mut partial_amount));
@@ -90,7 +91,7 @@ impl Account {
         utxos_to_spend
     }
 
-    /// Agrega la transacción a la lista de transacciones pendientes.
+    /// Add the transaction to the list of pending transactions.
     fn add_transaction(&self, transaction: Transaction) -> Result<(), Box<dyn Error>> {
         let mut aux = self
             .pending_transactions
@@ -99,8 +100,9 @@ impl Account {
         aux.push(transaction);
         Ok(())
     }
-    /// Realiza la transaccion con el monto recibido, devuelve el hash de dicha transaccion
-    /// para que el nodo envie dicho hash a lo restantes nodos de la red
+
+    /// Makes the transaction with the amount received. 
+    /// Returns the hash of the transaction so that the node sends that hash to the remaining nodes in the network.
     pub fn make_transaction(
         &mut self,
         address_receiver: &str,
@@ -112,14 +114,13 @@ impl Account {
             return Err(Box::new(std::io::Error::new(
                 io::ErrorKind::Other,
                 format!(
-                    "El balance de la cuenta {} tiene menos de {} satoshis",
+                    "The balance of the account {} has less than {} satoshis",
                     self.address,
                     amount + fee,
                 ),
             )));
         }
-        // Sabemos que tenemos monto para realizar la transaccion , ahora debemos obtener las utxos
-        // que utilizaremos para gastar
+        // The amount is already known, now we need to get the utxos to spend
         let utxos_to_spend: Vec<UtxoTuple> = self.get_utxos_for_amount(amount + fee);
         let change_address: &str = self.address.as_str();
         let mut unsigned_transaction = Transaction::generate_unsigned_transaction(
@@ -130,14 +131,12 @@ impl Account {
             &utxos_to_spend,
         )?;
         unsigned_transaction.sign(self, &utxos_to_spend)?;
-        // el mensaje cifrado creo que no hace falta chequearlo
         unsigned_transaction.validate(&utxos_to_spend)?;
-
         self.add_transaction(unsigned_transaction.clone())?;
         Ok(unsigned_transaction)
     }
 
-    /// Recibe el utxo_set, lo recorre y setea el utxo_set de la cuenta.
+    /// Receives the utxo_set, iterates it and sets the account utxo_set.
     pub fn set_utxos(
         &mut self,
         utxo_set: Arc<RwLock<HashMap<[u8; 32], UtxoTuple>>>,
@@ -159,11 +158,11 @@ impl Account {
         Ok(())
     }
 
-    /// Devuelve las transacciones pendientes y las confirmadas de la cuenta
-    /// Devuelve una lista de tuplas con el estado, transaccion y monto enviado por la cuenta
+    /// Returns the pending and confirmed transactions of the account.
+    /// Returns a list of tuples with the state, transaction and amount sent by the account.
     pub fn get_transactions(&self) -> Result<Vec<TransactionInfo>, Box<dyn Error>> {
         let mut transactions: Vec<(String, Transaction, i64)> = Vec::new();
-        // itero las pending tx
+        // iterate pending transactions
         for tx in self
             .pending_transactions
             .read()
@@ -193,10 +192,10 @@ impl Account {
         Ok(transactions)
     }
 }
-/// Convierte la cadena de bytes a hexadecimal y la devuelve
+
+/// Converts the bytes to hexadecimal and returns it
 pub fn bytes_to_hex_string(bytes: &[u8]) -> String {
     let hex_chars: Vec<String> = bytes.iter().map(|byte| format!("{:02x}", byte)).collect();
-
     hex_chars.join("")
 }
 
@@ -210,12 +209,12 @@ mod test {
         sync::{Arc, RwLock},
     };
 
-    /// Convierte el str recibido en hexadecimal, a bytes
+    /// Converts the received hexadecimal string into bytes
     fn string_to_33_bytes(input: &str) -> Result<[u8; 33], Box<dyn Error>> {
         if input.len() != 66 {
             return Err(Box::new(std::io::Error::new(
                 io::ErrorKind::Other,
-                "El string recibido es inválido. No tiene el largo correcto",
+                "The received string is invalid. It doesn't have the correct length",
             )));
         }
 
@@ -229,7 +228,7 @@ mod test {
     }
 
     #[test]
-    fn test_se_genera_correctamente_la_cuenta_con_wif_comprimida() {
+    fn test_account_generation_with_compressed_wif_is_successful() {
         let address_expected: String = String::from("mnEvYsxexfDEkCx2YLEfzhjrwKKcyAhMqV");
         let private_key: String =
             String::from("cMoBjaYS6EraKLNqrNN8DvN93Nnt6pJNfWkYM8pUufYQB5EVZ7SR");
@@ -238,7 +237,7 @@ mod test {
     }
 
     #[test]
-    fn test_se_genera_correctamente_la_cuenta_con_wif_no_comprimida() {
+    fn test_account_generation_with_uncompressed_wif_is_successful() {
         let address_expected: String = String::from("mnEvYsxexfDEkCx2YLEfzhjrwKKcyAhMqV");
         let private_key: String =
             String::from("91dkDNCCaMp2f91sVQRGgdZRw1QY4aptaeZ4vxEvuG5PvZ9hftJ");
@@ -247,7 +246,7 @@ mod test {
     }
 
     #[test]
-    fn test_no_se_puede_generar_la_cuenta_con_wif_incorrecta() {
+    fn test_account_generation_with_incorrect_wif_fails() {
         let address_expected: String = String::from("mnEvYsxexfDEkCx2YLEfzhjrwKKcyAhMqV");
         let private_key: String =
             String::from("K1dkDNCCaMp2f91sVQRGgdZRw1QY4aptaeZ4vxEvuG5PvZ9hftJ");
@@ -256,7 +255,7 @@ mod test {
     }
 
     #[test]
-    fn test_usuario_devuelve_clave_publica_comprimida_esperada() -> Result<(), Box<dyn Error>> {
+    fn test_user_returns_expected_compressed_public_key() -> Result<(), Box<dyn Error>> {
         let address = String::from("mpzx6iZ1WX8hLSeDRKdkLatXXPN1GDWVaF");
         let private_key = String::from("cQojsQ5fSonENC5EnrzzTAWSGX8PB4TBh6GunBxcCdGMJJiLULwZ");
         let user = Account {
@@ -274,8 +273,7 @@ mod test {
     }
 
     #[test]
-    fn test_no_se_puede_realizar_transaccion_a_una_address_invalida() -> Result<(), Box<dyn Error>>
-    {
+    fn test_transaction_to_invalid_address_fails() -> Result<(), Box<dyn Error>> {
         let address_expected: String = String::from("mnEvYsxexfDEkCx2YLEfzhjrwKKcyAhMqV");
         let private_key: String =
             String::from("cMoBjaYS6EraKLNqrNN8DvN93Nnt6pJNfWkYM8pUufYQB5EVZ7SR");
