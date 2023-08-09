@@ -15,7 +15,7 @@ type BlockHash = [u8; 32];
 type BlockHashString = String;
 type TransactionHash = String;
 
-/// Representa los eventos que la UI le envia a la wallet
+/// Represents the events that the UI sends to the wallet
 pub enum WalletEvent {
     Start,
     AddAccountRequest(WifPrivateKey, Address),
@@ -29,9 +29,9 @@ pub enum WalletEvent {
     SearchHeader(BlockHash),
 }
 
-/// Recibe un sender que envia eventos a la UI, un receiver que recibe eventos de la UI y una wallet
-/// Se encarga de manejar los eventos de la UI y llamar a los metodos correspondientes de la wallet
-/// para que realice las acciones correspondientes. Envia eventos a la UI para que muestre los resultados
+/// Received a sender that sends events to the UI, a receiver that receives events from the UI and a wallet
+/// It is responsible for handling UI events and calling the corresponding methods of the wallet
+/// to perform the corresponding actions. Sends events to the UI to show the results
 pub fn handle_ui_request(
     ui_sender: &Option<glib::Sender<UIEvent>>,
     rx: Receiver<WalletEvent>,
@@ -71,9 +71,9 @@ pub fn handle_ui_request(
     }
 }
 
-/// Recibe un sender que envia eventos a la UI, una wallet, la private-key wif y una direccion
-/// Se encarga de llamar al metodo de la wallet que agrega una cuenta. En caso de error al agregar la cuenta
-/// envia un evento a la UI para que muestre el error
+/// Receives a sender that sends events to the UI, a wallet, the private-key wif and an address
+/// It is responsible for calling the method of the wallet that adds an account. In case of error when adding the account
+/// sends an event to the UI to show the error
 fn handle_add_account(
     ui_sender: &Option<glib::Sender<UIEvent>>,
     wallet: &mut Wallet,
@@ -87,9 +87,9 @@ fn handle_add_account(
     }
 }
 
-/// Recibe un sender que envia eventos a la UI, una wallet y el indice de la cuenta a cambiar
-/// Se encarga de llamar al metodo de la wallet que cambia la cuenta actual. En caso de error al cambiar la cuenta
-/// envia un evento a la UI para que muestre el error
+/// Receives a sender that sends events to the UI, a wallet and the index of the account to change
+/// It is responsible for calling the method of the wallet that changes the current account. In case of error when changing the account
+/// sends an event to the UI to show the error
 fn handle_change_account(
     ui_sender: &Option<glib::Sender<UIEvent>>,
     wallet: &mut Wallet,
@@ -100,19 +100,19 @@ fn handle_change_account(
     }
 }
 
-/// Recibe un sender que envia eventos a la UI y una wallet
-/// Se encarga de llamar al metodo de la wallet que devuelve la cuenta actual. En caso de que la cuenta exista
-/// envia un evento a la UI para que muestre la cuenta actual
+/// Receives a sender that sends events to the UI and a wallet
+/// It is responsible for calling the method of the wallet that returns the current account. In case the account exists
+/// sends an event to the UI to show the current account
 fn handle_get_account(ui_sender: &Option<glib::Sender<UIEvent>>, wallet: &mut Wallet) {
     if let Some(account) = wallet.get_current_account() {
         send_event_to_ui(ui_sender, UIEvent::AccountChanged(account));
     }
 }
 
-/// Recibe un sender que envia eventos a la UI, una wallet, una direccion, un monto y una comision
-/// Se encarga de llamar al metodo de la wallet que realiza una transaccion. En caso de error al realizar la transaccion
-/// envia un evento a la UI para que muestre el error. En caso de que la transaccion se realice correctamente envia un evento
-/// a la UI para que muestre que la transaccion se realizo correctamente
+/// Receives a sender that sends events to the UI, a wallet, an address, an amount and a fee
+/// It is responsible for calling the method of the wallet that makes a transaction. In case of error when making the transaction
+/// sends an event to the UI to show the error. In case the transaction is made correctly, it sends an event
+/// to the UI to show that the transaction was made correctly
 fn handle_make_transaction(
     ui_sender: &Option<glib::Sender<UIEvent>>,
     wallet: &mut Wallet,
@@ -130,6 +130,10 @@ fn handle_make_transaction(
     }
 }
 
+/// Receives a sender that sends events to the UI, a wallet, a block hash and a transaction hash
+/// It is responsible for calling the method of the wallet that makes the PoI in a transaction. In case of error when making the PoI
+/// sends an event to the UI to show the error. In case the PoI is made correctly, it sends an event
+/// to the UI to show the result of the PoI.
 fn handle_poi(
     ui_sender: &Option<glib::Sender<UIEvent>>,
     wallet: &mut Wallet,
@@ -153,10 +157,10 @@ fn handle_poi(
     send_event_to_ui(ui_sender, UIEvent::POIResult(message));
 }
 
-/// Recibe un sender que envia eventos a la UI, una wallet y un hash de bloque
-/// Se encarga de llamar al metodo de la wallet que busca un bloque por su hash. En caso de que el bloque exista
-/// envia un evento a la UI para que muestre el bloque. En caso de que el bloque no exista envia un evento a la UI
-/// para que muestre que no se encontro el bloque
+/// Receives a sender that sends events to the UI, a wallet and a block hash
+/// It is responsible for calling the method of the wallet that searches for a block by its hash. If the block exists
+/// sends an event to the UI to show the block. If the block does not exist, it sends an event to the UI
+/// to show that the block was not found
 fn handle_search_block(
     ui_sender: &Option<glib::Sender<UIEvent>>,
     wallet: &mut Wallet,
@@ -169,10 +173,10 @@ fn handle_search_block(
     }
 }
 
-/// Recibe un sender que envia eventos a la UI, una wallet y un hash de bloque
-/// Se encarga de llamar al metodo de la wallet que busca un header por su hash. En caso de que el header exista
-/// envia un evento a la UI para que muestre el header. En caso de que el header no exista envia un evento a la UI
-/// para que muestre que no se encontro el header
+/// Receives a sender that sends events to the UI, a wallet and a block hash
+/// It is responsible for calling the method of the wallet that searches for a header by its hash. If the header exists
+/// sends an event to the UI to show the header. If the header does not exist, it sends an event to the UI
+/// to show that the header was not found
 fn handle_search_header(
     ui_sender: &Option<glib::Sender<UIEvent>>,
     wallet: &mut Wallet,
@@ -185,7 +189,7 @@ fn handle_search_header(
     }
 }
 
-/// Solicita a la wallet que envie a la UI las transacciones de la cuenta actual
+/// Request the wallet to send the transactions of the current account to the UI
 pub fn handle_get_transactions(ui_sender: &Option<glib::Sender<UIEvent>>, wallet: &mut Wallet) {
     if let Some(transactions) = wallet.get_transactions() {
         send_event_to_ui(ui_sender, UIEvent::UpdateTransactions(transactions));
