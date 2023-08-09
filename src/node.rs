@@ -20,9 +20,9 @@ use std::{
 
 type MerkleProofOfInclusionResult = Result<Option<Vec<([u8; 32], bool)>>, NodeCustomErrors>;
 
-/// Almacena la blockchain y el utxo set. Mantiene referencias a las cuentas y los nodos conectados.
-/// Inicializa también el NodeMessageHandler que es quien realiza la comunicación con los nodos.
 #[derive(Debug, Clone)]
+/// Stores the blockchain and the utxo set. Keeps references to the accounts and the connected nodes.
+/// It also initializes the NodeMessageHandler that is the one who communicates with the nodes.
 pub struct Node {
     pub connected_nodes: Arc<RwLock<Vec<TcpStream>>>,
     pub blockchain: Blockchain,
@@ -32,7 +32,7 @@ pub struct Node {
 }
 
 impl Node {
-    /// Inicializa el nodo. Recibe la blockchain ya descargada.
+    /// Initializes the node. Receives the blockchain already downloaded.
     pub fn new(
         log_sender: &LogSender,
         ui_sender: &Option<glib::Sender<UIEvent>>,
@@ -54,12 +54,12 @@ impl Node {
             node_pointers,
         })
     }
-    /// Validar el bloque recibido
+    /// Validate the block received
     pub fn block_validation(block: Block) -> (bool, &'static str) {
         block.validate()
     }
 
-    /// Devuelve las utxos asociadas a la address recibida.
+    /// Returns the utxos associated with the received address.
     pub fn utxos_referenced_to_account(
         &self,
         address: &str,
@@ -81,21 +81,22 @@ impl Node {
         }
         Ok(account_utxo_set)
     }
-    /// Se encarga de llamar a la funcion finish() del peers_handler del nodo
+
+    /// Calls the finish() function of the node's peers_handler
     pub fn shutdown_node(&self) -> Result<(), NodeCustomErrors> {
         self.peers_handler.finish()
     }
 
-    /// Recibe un vector de bytes que representa a la raw format transaction para se enviada por
-    /// la red a todos los nodos conectados
+    /// Receives a vec of bytes that represents the raw format transaction to be sent
+    /// to all the connected nodes
     pub fn broadcast_tx(&self, raw_tx: [u8; 32]) -> Result<(), NodeCustomErrors> {
         let inventories = vec![Inventory::new_tx(raw_tx)];
         let inv_message_bytes = inv_mershalling(inventories);
         self.peers_handler.broadcast_to_nodes(inv_message_bytes)
     }
 
-    /// Actualiza lo que apunta el puntero de accounts a otro puntero que es pasado por parametro
-    /// de esta manera el puntero queda apuntando a un puntero con un vector de cuentas que es apuntado por la wallet
+    /// Actualize what the accounts pointer points to another pointer that is passed by parameter
+    /// in this way the pointer is pointing to a pointer with a vector of accounts that is pointed by the wallet
     pub fn set_accounts(
         &mut self,
         accounts: Arc<RwLock<Vec<Account>>>,
@@ -107,9 +108,9 @@ impl Node {
         Ok(())
     }
 
-    /// Realiza la merkle proof of inclusion, delega la creacion del merkle tree al nodo, para
-    /// que luego el merkle tree genere la proof of inclusion,devuelve error en caso de no encontrar
-    /// el hash block, en caso de exito devuelve un option
+    /// Makes the merkle proof of inclusion, delegates the creation of the merkle tree to the node, so
+    /// that the merkle tree then generates the proof of inclusion, returns an error if the block hash is not found,
+    /// in case of success it returns an option
     pub fn merkle_proof_of_inclusion(
         &self,
         block_hash: &[u8; 32],
@@ -125,12 +126,12 @@ impl Node {
         match block_option {
             Some(block) => Ok(block.merkle_proof_of_inclusion(tx_hash)),
             None => Err(NodeCustomErrors::OtherError(
-                "No se encontro el bloque".to_string(),
+                "Block hash not found".to_string(),
             )),
         }
     }
 
-    /// Se encarga de llamar a la funcion add_connection del peers_handler del nodo
+    /// Calls the add_connection function of the node's peers_handler
     pub fn add_connection(
         &mut self,
         log_sender: &LogSender,
@@ -145,16 +146,16 @@ impl Node {
         )
     }
 
-    /// Busca un bloque en la blockchain
-    /// Recibe el hash del bloque en formato hex
-    /// Devuelve el bloque si lo encuentra, None en caso contrario
+    /// Searchs a block in the blockchain.
+    /// Receives the hash of the block in hex format.
+    /// Returns the block if it finds it, None otherwise.
     pub fn search_block(&self, hash: [u8; 32]) -> Option<Block> {
         self.blockchain.search_block(hash)
     }
 
-    /// Busca un header en la blockchain
-    /// Recibe el hash del header en formato hex
-    /// Devuelve el header si lo encuentra, None en caso contrario
+    /// Searchs a header in the blockchain.
+    /// Receives the hash of the header in hex format.
+    /// Returns the header if it finds it, None otherwise.
     pub fn search_header(&self, hash: [u8; 32]) -> Option<(BlockHeader, usize)> {
         self.blockchain.search_header(hash)
     }
