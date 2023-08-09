@@ -17,10 +17,10 @@ use gtk::glib;
 use std::sync::mpsc::{channel, Receiver};
 use std::{env, thread};
 
-/// Recibe los argumentos del programa y corre el nodo con o sin interfaz grafica segun los argumentos
-/// Si recibe 3 argumentos y el ultimo es -i corre el nodo con interfaz grafica
-/// Devuelve un error si no se puede correr el nodo correctamente o si no se puede crear la interfaz grafica
-/// Ok(()) si se corre el nodo correctamente
+/// Receives the program arguments and runs the node with or without a graphical interface according to the arguments.
+/// If it receives 3 arguments and the last one is -i it runs the node with a graphical interface.
+/// Returns an error if the node can't be run correctly or if the graphical interface can't be created.
+/// Ok(()) if the node is run correctly.
 fn main() -> Result<(), NodeCustomErrors> {
     let mut args: Vec<String> = env::args().collect();
     if args.len() == 3 && args[2] == *"-i" {
@@ -33,10 +33,10 @@ fn main() -> Result<(), NodeCustomErrors> {
     Ok(())
 }
 
-/// Crea los channels para comunicar el nodo con la interfaz grafica, corre
-/// la interfaz grafica en el thread principal y corre el nodo en un thread secundario
-/// Devuelve un error si no se puede crear la interfaz grafica o si no se puede correr el nodo
-/// Ok(()) si se corre el nodo correctamente
+/// Creates the channels to communicate the node with the graphical interface, runs
+/// the graphical interface in the main thread and runs the node in a secondary thread.
+/// Returns an error if the graphical interface can't be created or if the node can't be run.
+/// Ok(()) if the node is run correctly.
 fn run_with_ui(args: Vec<String>) -> Result<(), NodeCustomErrors> {
     // Channel created to recibe the sender from the ui (channel created in the ui thread) that is needed to send events to the ui
     let (tx, rx) = channel();
@@ -45,7 +45,6 @@ fn run_with_ui(args: Vec<String>) -> Result<(), NodeCustomErrors> {
     let app_thread = thread::spawn(move || -> Result<(), NodeCustomErrors> {
         // Recieve the sender from the ui thread to send events to the ui
         let ui_tx = rx.recv().map_err(|err| {
-            println!("ERROR AL RECIBIR!");
             NodeCustomErrors::ThreadChannelError(err.to_string())
         })?;
         // run the node with the ui sender
@@ -59,16 +58,16 @@ fn run_with_ui(args: Vec<String>) -> Result<(), NodeCustomErrors> {
     Ok(())
 }
 
-/// Corre el nodo sin interfaz grafica
-/// Devuelve un error si no se puede correr el nodo
-/// Ok(()) si se corre el nodo correctamente
+/// Runs the node without a graphical interface.
+/// Returns an error if the node can't be run correctly.
+/// Ok(()) if the node is run correctly.
 fn run_without_ui(args: &[String]) -> Result<(), NodeCustomErrors> {
     run_node(args, None, None)
 }
 
-/// Corre el nodo con o sin interfaz grafica segun los argumentos
-/// Devuelve un error si no se puede correr el nodo
-/// Ok(()) si se corre el nodo correctamente
+/// Runs the node with or without a graphical interface according to the arguments.
+/// Returns an error if the node can't be run correctly.
+/// Ok(()) if the node is run correctly.
 fn run_node(
     args: &[String],
     ui_sender: Option<glib::Sender<UIEvent>>,
@@ -93,8 +92,8 @@ fn run_node(
     Ok(())
 }
 
-/// Espera a que se presione el boton de start en la interfaz grafica. La UI le envia un evento al nodo
-/// indicando que se presiono el boton. En caso de no haber interfaz grafica no hace nada
+/// Waits for the start button to be pressed on the graphical interface. The UI sends an event to the node
+/// indicating that the button was pressed. If there is no graphical interface it does nothing
 fn wait_for_start_button(rx: &Option<Receiver<WalletEvent>>) {
     if let Some(rx) = rx {
         for event in rx {
@@ -105,7 +104,7 @@ fn wait_for_start_button(rx: &Option<Receiver<WalletEvent>>) {
     }
 }
 
-/// Cierra los threads del nodo y del server, cierra los loggers y devuelve un error si no se pueden cerrar
+/// Closes the node and server threads, closes the loggers and returns an error if they can't be closed
 fn shut_down(
     node: Node,
     server: NodeServer,
@@ -118,9 +117,9 @@ fn shut_down(
     Ok(())
 }
 
-/// Recibe un sender que envia eventos a la UI o None, un receiver que recibe eventos de la UI o none y una wallet
-/// Si el Receiver es Some se encarga de manejar los eventos de la UI, si es None se encarga de mostar la interfaz de terminal
-/// para que el usuario interactue con la wallet
+/// Receives a sender that sends events to the UI or None, a receiver that receives events from the UI or none and a wallet.
+/// If the Receiver is Some it is responsible for handling the UI events, if it is None it is responsible for showing the terminal interface
+/// so that the user interacts with the wallet
 fn handle_ui_events(
     ui_sender: &Option<glib::Sender<UIEvent>>,
     node_rx: Option<Receiver<WalletEvent>>,
