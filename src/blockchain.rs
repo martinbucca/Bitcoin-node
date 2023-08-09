@@ -10,7 +10,7 @@ use crate::{
 type UtxoSetPointer = Arc<RwLock<HashMap<[u8; 32], UtxoTuple>>>;
 
 #[derive(Debug, Clone)]
-/// Representa la cadena de bloques con sus bloques, headers, alturas y UTXO set.
+/// Represents the blockchain with its blocks, headers, heights and UTXO set.
 pub struct Blockchain {
     pub headers: Arc<RwLock<Vec<BlockHeader>>>,
     pub blocks: Arc<RwLock<HashMap<[u8; 32], Block>>>,
@@ -19,7 +19,7 @@ pub struct Blockchain {
 }
 
 impl Blockchain {
-    /// Crea un nuevo Blockchain que agrupa los headers, bloques, alturas y UTXO set.
+    /// Creates a new Blockchain that groups the headers, blocks, heights and UTXO set.
     pub fn new(
         headers: Arc<RwLock<Vec<BlockHeader>>>,
         blocks: Arc<RwLock<HashMap<[u8; 32], Block>>>,
@@ -34,9 +34,9 @@ impl Blockchain {
         }
     }
 
-    /// Busca un bloque en la blockchain
-    /// Recibe el hash del bloque en formato hex
-    /// Devuelve el bloque si lo encuentra, None en caso de error al obtener el lock o no encontrarlo
+    /// Searchs a block in the blockchain.
+    /// Receives the hash of the block in hex format.
+    /// Returns the block if it finds it, None if it can't get the lock or if it doesn't find it.
     pub fn search_block(&self, hash: [u8; 32]) -> Option<Block> {
         if let Ok(blocks) = self.blocks.read() {
             return blocks.get(&hash).cloned();
@@ -45,9 +45,9 @@ impl Blockchain {
         }
     }
 
-    /// Busca un header en la blockchain
-    /// Recibe el hash del header en formato hex
-    /// Devuelve el header si lo encuentra, None en caso de error al obtener el lock o no encontrarlo
+    /// Searchs a header in the blockchain.
+    /// Receives the hash of the header in hex format.
+    /// Returns the header if it finds it, None if it can't get the lock or if it doesn't find it.
     pub fn search_header(&self, hash: [u8; 32]) -> Option<(BlockHeader, usize)> {
         if let Ok(index) = self.header_heights.read() {
             if let Some(height) = index.get(&hash) {
