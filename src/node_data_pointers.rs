@@ -5,8 +5,8 @@ use std::{
 
 use crate::{account::Account, blockchain::Blockchain};
 
-/// Almacena los punteros de los datos del nodo que se comparten entre los hilos.
 #[derive(Debug, Clone)]
+/// Stores the pointers of the node data that are shared between threads.
 pub struct NodeDataPointers {
     pub connected_nodes: Arc<RwLock<Vec<TcpStream>>>,
     pub blockchain: Blockchain,
@@ -14,7 +14,7 @@ pub struct NodeDataPointers {
 }
 
 impl NodeDataPointers {
-    /// Almacena los punteros de los datos del nodo que se comparten entre los hilos.
+    /// Returns a new instance of NodeDataPointers
     pub fn new(
         connected_nodes: Arc<RwLock<Vec<TcpStream>>>,
         blockchain: Blockchain,
