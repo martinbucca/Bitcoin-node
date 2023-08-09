@@ -9,12 +9,13 @@ use std::sync::Arc;
 
 use crate::custom_errors::NodeCustomErrors;
 
-/// Permite validar la cantidad de atributos en el archivo de configuración
-/// Si se agregan hay que incrementarlo
-const CANTIDAD_ATRIBUTOS: usize = 23;
+/// Useful to validate the amount of attributes in the config file
+/// If the amount of attributes in the config file changes, this constant
+/// must be updated
+const AMOUNT_OF_ATTRIBUTES: usize = 23;
 
-/// Almacena los campos leidos del archivo de configuración
 #[derive(Debug, Clone)]
+/// Stores the configuration of the node
 pub struct Config {
     pub number_of_nodes: usize,
     pub dns_seed: String,
@@ -41,14 +42,14 @@ pub struct Config {
     pub logs_folder_path: String,
 }
 impl Config {
-    /// Crea un config leyendo un archivo de configuracion ubicado en la
-    ///  ruta especificada en los argumentos recibidos por parametro.
-    /// El formato del contenido es: {config_name}={config_value}
-    /// Devuelve un Config con los valores leidos del archivo especificado
-    ///
-    /// Devuelve un io::Error si:
-    /// - No se pudo encontrar el archivo en la ruta indicada.
-    /// - El archivo tiene un formato invalido.
+
+    /// Creates a config reading a config file located in the path specified
+    /// in the arguments received by parameter. The format of the content is:
+    /// {config_name}={config_value}. Returns a Config with the values read
+    /// from the file specified.
+    /// Returns an io::Error if:
+    /// - The file could not be found in the path specified.
+    /// - The file has an invalid format.
     pub fn from(args: &[String]) -> Result<Arc<Self>, NodeCustomErrors> {
         if args.len() > 2 {
             return Err(NodeCustomErrors::ArgumentsError(
@@ -66,7 +67,7 @@ impl Config {
         Self::from_reader(file).map_err(|err| NodeCustomErrors::ReadingFileError(err.to_string()))
     }
 
-    /// Lee del file recibido y devuelve el struct de configuración inicializado.
+    /// Read the file received and returns the configuration struct initialized.
     fn from_reader<T: Read>(content: T) -> Result<Arc<Config>, Box<dyn Error>> {
         let reader = BufReader::new(content);
 
@@ -99,7 +100,7 @@ impl Config {
         let mut number_of_settings_loaded: usize = 0;
         for line in reader.lines() {
             let current_line = line?;
-            // es un comentario, ignorarlo
+            // a comment line starts with '#', so it is ignored
             if current_line.starts_with('#') {
                 continue;
             }
@@ -122,10 +123,10 @@ impl Config {
         Ok(Arc::new(cfg))
     }
 
-    /// Chequea la cantidad atributos contra la cantidad leida.
-    /// Devuelve error en caso de haber diferencia
+    /// Checks the amount of attributes against the amount read. Returns an error
+    /// if there is a difference
     fn check_number_of_attributes(cantidad_de_lineas: usize) -> Result<(), Box<dyn Error>> {
-        if cantidad_de_lineas != CANTIDAD_ATRIBUTOS {
+        if cantidad_de_lineas != AMOUNT_OF_ATTRIBUTES {
             return Err(Box::new(io::Error::new(
                 io::ErrorKind::InvalidInput,
                 "Invalid quantity of lines in file config".to_string(),
@@ -134,8 +135,8 @@ impl Config {
         Ok(())
     }
 
-    /// Recibe el nombre del atributo y lo guarda en el struct de configuración.
-    /// Actualiza la cantidad de atributos leidos para su posterior verificación.
+    /// Receives the name of the attribute and saves it in the configuration struct.
+    /// Updates the amount of attributes read for later verification.
     fn load_setting(
         &mut self,
         name: &str,
