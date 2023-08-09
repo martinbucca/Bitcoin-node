@@ -24,17 +24,16 @@ use crate::{
 const LOCALHOST: &str = "127.0.0.1";
 
 #[derive(Debug)]
-/// Estructura que representa al servidor de un nodo.
-/// Sender para indicarle al TcpListener que deje de escuchar por conexiones entrantes
-/// handle para esperar oportunamente al thread que esucha conexiones entrantes
+/// Represents a node server.
+/// Sender to indicate to the TcpListener to stop listening for incoming connections
+/// handle to wait for the thread that listens for incoming connections
 pub struct NodeServer {
     sender: Sender<String>,
     handle: JoinHandle<Result<(), NodeCustomErrors>>,
 }
 
 impl NodeServer {
-    /// Crea un nuevo servidor de nodo en un thread aparte encargado de eso
-
+    /// Creates a new NodeServer
     pub fn new(
         config: &Arc<Config>,
         log_sender: &LogSender,
@@ -60,9 +59,9 @@ impl NodeServer {
         Ok(NodeServer { sender, handle })
     }
 
-    /// Escucha por conexiones entrantes y las maneja
-    /// Si llega un mensaje por el channel, sigifica que debe dejar de escuchar y cortar el bucle
-    /// Devuelve un error si ocurre alguno que no sea del tipo WouldBlock
+    /// Listen for incoming connections and handles them.
+    /// If a message arrives by the channel, it means that it must stop listening and cut the loop.
+    /// Returns an error if any occurs that is not of the type WouldBlock.
     fn listen(
         config: &Arc<Config>,
         log_sender: &LogSender,
@@ -77,17 +76,17 @@ impl NodeServer {
         listener
             .set_nonblocking(true)
             .map_err(|err| NodeCustomErrors::SocketError(err.to_string()))?;
-        let amount_of_connections = 0;
+        let mut amount_of_connections = 0;
         write_in_log(
             &log_sender.info_log_sender,
-            "Empiezo a escuchar por conecciones entrantes!",
+            "Start listening for incoming connections!",
         );
         for stream in listener.incoming() {
-            // recibio un mensaje para frenar
+            // stop message
             if rx.try_recv().is_ok() {
                 write_in_log(
                     &log_sender.info_log_sender,
-                    "Dejo de escuchar por conexiones entrantes!",
+                    "Stop listening for incoming connections!",
                 );
                 break;
             }
@@ -99,12 +98,13 @@ impl NodeServer {
                     write_in_log(
                         &log_sender.info_log_sender,
                         format!(
-                            "Recibo nueva conexion entrante --{:?}--",
+                            "Receives new incoming connection from --{:?}--",
                             stream.peer_addr()
                         )
                         .as_str(),
                     );
                     Self::handle_incoming_connection(config, log_sender, ui_sender, node, stream)?;
+                    amount_of_connections += 1;
                 }
                 Err(ref err) if err.kind() == std::io::ErrorKind::WouldBlock => {
                     // This doesen't mean an error ocurred, there just wasn't a connection at the moment
@@ -115,9 +115,10 @@ impl NodeServer {
         }
         Ok(())
     }
-    /// Maneja una conexion entrante
-    /// Realiza el handshake y agrega la conexion al nodo
-    /// Devuelve un error si ocurre alguno
+
+    /// Handles an incoming connection.
+    /// Performs the handshake and adds the connection to the node.
+    /// Returns an error if any occurs.
     fn handle_incoming_connection(
         config: &Arc<Config>,
         log_sender: &LogSender,
@@ -125,7 +126,7 @@ impl NodeServer {
         node: &mut Node,
         mut stream: TcpStream,
     ) -> Result<(), NodeCustomErrors> {
-        // REALIZAR EL HANDSHAKE
+        // HANDSHAKE
         let local_ip_addr = stream
             .local_addr()
             .map_err(|err| NodeCustomErrors::SocketError(err.to_string()))?;
@@ -145,29 +146,31 @@ impl NodeServer {
             .map_err(|err| NodeCustomErrors::WriteNodeError(err.to_string()))?;
         write_in_log(
             &log_sender.info_log_sender,
-            format!("Handshake con nodo {:?} realizado con exito!", socket_addr).as_str(),
+            format!("Handshake with node --{:?}-- done successfully!", socket_addr).as_str(),
         );
-        // AGREGAR LA CONEXION AL NODO
+        // ADD CONNECTION TO NODE
         node.add_connection(log_sender, ui_sender, stream)?;
         Ok(())
     }
 
-    /// Le indica al servidor que deje de escuchar por conexiones entrantes
-    /// Envia por el channel un string (puede ser cualquiera) y le idica al thread que deje de escuchar en el bucle
+    /// Indicates to the server to stop listening for incoming connections.
+    /// Sends a string (can be anything) through the channel and tells the thread to stop listening in the loop
+    /// and to join the thread.
+    /// Returns an error if it can't send the message through the channel or if it can't join the thread.
     pub fn shutdown_server(self) -> Result<(), NodeCustomErrors> {
         self.sender
             .send("finish".to_string())
             .map_err(|err| NodeCustomErrors::ThreadChannelError(err.to_string()))?;
         self.handle.join().map_err(|_| {
             NodeCustomErrors::ThreadJoinError(
-                "Error al hacer join al thread del servidor que esucha".to_string(),
+                "Error trying to join the thread that listens for incoming connections!".to_string(),
             )
         })??;
         Ok(())
     }
 }
 
-/// Devuelve un SocketAddr a partir de una ip y un puerto
+/// Returns a SocketAddr from an ip and a port
 fn get_socket(ip: String, port: u16) -> Result<SocketAddr, NodeCustomErrors> {
     let ip = ip
         .parse::<IpAddr>()
