@@ -1,0 +1,110 @@
+
+
+.start-button{
+    background: transparent;
+    color: #eceeea;
+    font-size: 60px;
+    border: 0;
+    font-style: italic;
+    font-weight: bold;
+    font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+}
+
+.app-button{
+    background: #1E222F;
+    border: 1px solid #454F5C;
+    color: #eceeea;
+}
+
+.app-button:hover{
+    border: 1px solid #00eeff;
+    color:#00eeff;
+}
+
+
+.start-button:hover{
+    color: rgb(249, 231, 130);
+}
+
+.progress-bar{
+    color: whitesmoke;
+    font-size: large;
+}
+
+.input-user{
+    border-radius: 20px;
+    border: 1px solid #454F5C;
+    background-color: #252A3A;
+    color : whitesmoke;
+}
+
+.input-user:hover{
+    border: 1px solid #00eeff;
+}
+
+.switcher{
+    font-size: 20px;
+    color: #393740
+}
+
+.separator{
+    border: 1px solid #454F5C;
+    border-radius: 20px;
+}
+
+.frames{
+    background-color:#1E222F;
+    font-size: 15px;
+    font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+    border: 1px solid gray;
+    color :  whitesmoke;
+}
+.font-send{
+    font-size: 10px;
+}
+.headers{
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.fonts{
+    font-size: 20px;
+    color : whitesmoke;
+}
+
+.spin{  
+    color: rgb(249, 231, 130);
+}
+
+.account-spin{
+    color : #2A7ACB;
+}
+
+.load-account{
+    color : whitesmoke;
+}
+
+.dialog{
+    background-color: #1E222F;
+    color : whitesmoke;
+}
+
+.change-account-label{
+    color : whitesmoke;
+    font-size: 20px;
+}
+
+.send-balance{
+    color : whitesmoke;
+    font-size: 20px;
+}
+
+.recent-txs {
+    color: #2A7ACB;
+    font-size: 12px;
+}
+
+.box {
+    background-color: #718C9F;
+    border-radius: 20px;
+}
