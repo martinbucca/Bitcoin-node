@@ -2,8 +2,8 @@ use crate::{gtk::ui_events::UIEvent, wallet};
 use ::gtk::glib;
 use wallet::Wallet;
 
-/// Muestra las opciones para interactuar con el programa desde la terminal, espera algun comando
-/// y lo handlea o muestra un mensaje de error
+/// Shows the options to interact with the program from the terminal, waits for some command
+/// and handle it or shows an error message
 pub fn terminal_ui(ui_sender: &Option<glib::Sender<UIEvent>>, wallet: &mut Wallet) {
     show_options();
     loop {
@@ -15,7 +15,7 @@ pub fn terminal_ui(ui_sender: &Option<glib::Sender<UIEvent>>, wallet: &mut Walle
                 if let Ok(num) = command.parse::<u32>() {
                     match num {
                         0 => {
-                            println!("Cerrando nodo...\n");
+                            println!("Closing node...\n");
                             break;
                         }
                         1 => {
@@ -31,68 +31,68 @@ pub fn terminal_ui(ui_sender: &Option<glib::Sender<UIEvent>>, wallet: &mut Walle
                             handle_poi_request(wallet);
                         }
                         _ => {
-                            println!("Número no reconocido. Inténtalo de nuevo! \n");
+                            println!("Not valid number. Try again! \n");
                         }
                     }
                     show_options();
                 } else {
-                    println!("Entrada inválida. Inténtalo de nuevo! \n");
+                    println!("Invalid input. Try again! \n");
                 }
             }
             Err(error) => {
-                println!("Error al leer la entrada: {}", error);
+                println!("Error trying to read input: {}", error);
             }
         }
     }
 }
 
-// Muestra por terminal los posibles comandos a ingresar para interactuar con la wallet
+/// Shows the possible commands to interact with the wallet
 fn show_options() {
     println!("\n");
-    println!("INGRESE ALGUNO DE LOS SIGUIENTES COMANDOS\n");
-    println!("0: Terminar el programa");
-    println!("1: Añadir una cuenta a la wallet");
-    println!("2: Mostrar balance de las cuentas");
-    println!("3: Hacer transaccion desde una cuenta");
-    println!("4: Prueba de inclusion de una transaccion en un bloque");
+    println!("Enter the number of the command you want to execute: \n");
+    println!("0: End the program");
+    println!("1: Add an account to the wallet");
+    println!("2: Show the balance of the accounts");
+    println!("3: Make a transaction from an account");
+    println!("4: Proof of inclusion of a transaction in a block");
     println!("-----------------------------------------------------------\n");
 }
 
-/// Le pide al usuario que ingrese por terminal los datos necesarios para hacer una transaccion
-/// e intenta hacer una transaccion. En caso de error imprime por la terminal el error
+/// Asks the user to enter the data necessary to make a transaction by terminal
+/// and tries to make a transaction. In case of error it prints the error by terminal
 fn handle_transaccion_request(ui_sender: &Option<glib::Sender<UIEvent>>, wallet: &mut Wallet) {
     if wallet.show_indexes_of_accounts().is_err() {
         return;
     }
-    println!("INGRESE LOS SIGUIENTES DATOS PARA REALIZAR UNA TRANSACCION \n");
-    let account_index: usize = read_input("Índice de la cuenta: ").unwrap_or_else(|err| {
-        println!("Error al leer la entrada: {}", err);
+    println!("ENTER THE FOLLOWING DATA TO MAKE A TRANSACTION \n");
+    let account_index: usize = read_input("Account index: ").unwrap_or_else(|err| {
+        println!("Error trying to read the input: {}", err);
         0
     });
     wallet
         .change_account(ui_sender, account_index)
-        .unwrap_or_else(|err| println!("Error al cambiar de cuenta: {}", err));
-    let address_receiver: String = read_input("Dirección del receptor: ").unwrap_or_else(|err| {
-        println!("Error al leer la entrada: {}", err);
+        .unwrap_or_else(|err| println!("Error trying to change account: {}", err));
+    let address_receiver: String = read_input("Reciever address: ").unwrap_or_else(|err| {
+        println!("Error trying to read the input: {}", err);
         String::new()
     });
-    let amount: i64 = read_input("Cantidad(Satoshis): ").unwrap_or_else(|err| {
-        println!("Error al leer la entrada: {}", err);
+    let amount: i64 = read_input("Amount(Satoshis): ").unwrap_or_else(|err| {
+        println!("Error trying to read the input: {}", err);
         0
     });
-    let fee: i64 = read_input("Tarifa(Satoshis): ").unwrap_or_else(|err| {
-        println!("Error al leer la entrada: {}", err);
+    let fee: i64 = read_input("Fee(Satoshis): ").unwrap_or_else(|err| {
+        println!("Error trying to read the input: {}", err);
         0
     });
-    println!("Realizando y broadcasteando transaccion...");
+    println!("Broadcasting transaction...");
     if let Err(error) = wallet.make_transaction(ui_sender, &address_receiver, amount, fee) {
-        println!("Error al realizar la transacción: {}", error);
+        println!("Error trying to make the transaction: {}", error);
     } else {
-        println!("TRANSACCION REALIZADA CORRECTAMENTE!");
+        println!("TRANSACTION MADE SUCCESSFULLY!");
     }
 }
 
-/// Recibe lo que se quiere pedir por terminal y espera a que se ingrese algo para poder parsearlo
+/// Receives what you want to ask for by terminal and waits for something to be entered to be able to parse it
 fn read_input<T: std::str::FromStr>(prompt: &str) -> Result<T, std::io::Error>
 where
     <T as std::str::FromStr>::Err: std::fmt::Display,
@@ -109,91 +109,88 @@ where
     Ok(value)
 }
 
-/// Le pide al usuario que ingrese por terminal los datos de la cuenta y la añade a la wallet. En caso de que los
-/// datos ingresados sean incorrectos, lo muestra por pantalla.
+/// Asks the user to enter the account data by terminal and adds it to the wallet. In case of error when adding the account
+/// shows it on the screen
 fn handle_add_account_request(ui_sender: &Option<glib::Sender<UIEvent>>, wallet: &mut Wallet) {
-    println!("Ingrese PRIVATE KEY en formato WIF: ");
+    println!("Enter the  PRIVATE KEY in WIF format: ");
     let mut private_key_input = String::new();
     match std::io::stdin().read_line(&mut private_key_input) {
         Ok(_) => {
             let wif_private_key = private_key_input.trim();
-            println!("Ingrese la ADDRESS COMPRIMIDA de la cuenta: ");
+            println!("Enter the ADDRESS (compressed) of the account: ");
             let mut address_input = String::new();
             match std::io::stdin().read_line(&mut address_input) {
                 Ok(_) => {
                     let address = address_input.trim();
-                    println!("Agregando la cuenta -- {} -- a la wallet...\n", address);
+                    println!("Adding account -- {} -- to wallet...\n", address);
                     if let Err(err) = wallet.add_account(
                         ui_sender,
                         wif_private_key.to_string(),
                         address.to_string(),
                     ) {
                         println!("ERROR: {err}\n");
-                        println!("Ocurrio un error al intentar añadir una nueva cuenta, intente de nuevo! \n");
+                        println!("An error occurred while trying to add a new account, try again! \n");
                     } else {
-                        println!(
-                            "CUENTA -- {} -- AÑADIDA CORRECTAMENTE A LA WALLET!\n",
-                            address
-                        );
+                        println!("ACCOUNT -- {} -- ADDED CORRECTLY TO THE WALLET!\n", address);
                     }
                 }
                 Err(error) => {
-                    println!("Error al leer la entrada: {}", error);
+                    println!("Error trying to read the input: {}", error);
                 }
             }
         }
         Err(error) => {
-            println!("Error al leer la entrada: {}", error);
+            println!("Error trying to read the input: {}", error);
         }
     }
 }
 
-/// Muestra el balance de todas las cuentas de la wallet por pantalla
+/// Shows the balance of all accounts in the wallet on the screen
 fn handle_balance_request(wallet: &mut Wallet) {
-    println!("Calculando el balance de las cuentas...\n");
+    println!("Calculating balance of all the accounts...\n");
     match wallet.show_accounts_balance() {
         Ok(_) => {}
-        Err(e) => println!("Error al leer el balance: {}", e),
+        Err(e) => println!("Error trying to get the balance: {}", e),
     }
 }
 
-/// Le pide al usuario que ingrese por terminal los hash de bloque y transaccion para realizar la prueba de inclusión. En caso de que los
-/// datos ingresados sean incorrectos, lo muestra por pantalla
+/// Asks the user to enter the block and transaction hash by terminal to perform the proof of inclusion. In case the
+/// data entered is incorrect, it shows it on the screen
 fn handle_poi_request(wallet: &mut Wallet) {
-    println!("Ingrese el hash del bloque: ");
+    println!("Enter the hash of the block: ");
     let mut block_hash_input = String::new();
     match std::io::stdin().read_line(&mut block_hash_input) {
         Ok(_) => {
             let block_hash = block_hash_input.trim();
-            println!("Ingrese el hash de la transacción: ");
+            println!("Enter the hash of the transaction: ");
             let mut txid_input = String::new();
             match std::io::stdin().read_line(&mut txid_input) {
                 Ok(_) => {
                     let txid = txid_input.trim();
-                    println!("Realizando la proof of inclusion ...\n");
+                    println!("Calculating proof of inclusion...\n");
 
                     let poi = match wallet
                         .tx_proof_of_inclusion(block_hash.to_string(), txid.to_string())
                     {
                         Err(err) => {
                             println!("ERROR: {err}\n");
-                            println!("Ocurrio un error al realizar la proof of inclusion, intente de nuevo! \n");
+                            println!("An error occurred while trying to calculate the proof of inclusion, try again! \n");
                             return;
                         }
                         Ok(poi) => poi,
                     };
                     match poi {
-                        true => println!("La transacción se encuentra en el bloque."),
-                        false => println!("La transacción no se encuentra en el bloque."),
+                        true => println!("The transaction is in the block."),
+                        false => println!("The transaction is not in the block."),
                     }
                 }
                 Err(error) => {
-                    println!("Error al leer la entrada: {}", error);
+                    println!("Error trying to read the input: {}", error);
                 }
             }
         }
         Err(error) => {
-            println!("Error al leer la entrada: {}", error);
+            println!("Error trying to read the input: {}", error);
         }
     }
 }
