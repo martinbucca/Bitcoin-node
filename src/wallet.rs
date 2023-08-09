@@ -20,7 +20,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-
+/// Represents the wallet. It has a node and a list of accounts. It also has the index of the current account.
 pub struct Wallet {
     pub node: Node,
     pub current_account_index: Option<usize>,
@@ -28,7 +28,7 @@ pub struct Wallet {
 }
 
 impl Wallet {
-    /// Crea la wallet. Inicializa el nodo con la referencia de las cuentas de la wallet
+    /// Creates the wallet. Initializes the node with the reference of the wallet accounts
     pub fn new(node: Node) -> Result<Self, NodeCustomErrors> {
         let mut wallet = Wallet {
             node,
@@ -39,9 +39,9 @@ impl Wallet {
         Ok(wallet)
     }
 
-    /// Realiza una transacción con la cuenta actual de la wallet y hace el broadcast.
-    /// Recibe la address receptora, monto y fee.
-    /// Devuelve error en caso de que algo falle.
+    /// Makes a transaction with the current account of the wallet and broadcasts it.
+    /// Receives the address of the receiver, amount and fee.
+    /// Returns an error if something fails.
     pub fn make_transaction(
         &self,
         ui_sender: &Option<glib::Sender<UIEvent>>,
@@ -69,9 +69,9 @@ impl Wallet {
         Ok(())
     }
 
-    /// Agrega una cuenta a la wallet.
-    /// Devuelve error si las claves ingresadas son inválidas y envia el error a la UI.
-    /// En caso de que la cuenta se agregue correctamente, le envia un evento a la UI para que la muestre
+    /// Adds an account to the wallet.
+    /// Returns an error if the keys entered are invalid and sends the error to the UI.
+    /// If the account is added correctly, it sends an event to the UI to show it.
     pub fn add_account(
         &mut self,
         ui_sender: &Option<glib::Sender<UIEvent>>,
@@ -91,7 +91,8 @@ impl Wallet {
         send_event_to_ui(ui_sender, UIEvent::AccountAddedSuccesfully(account));
         Ok(())
     }
-    /// Funcion que se encarga de cargar los respectivos utxos asociados a la cuenta
+
+    /// Loads the respective utxos associated with the account
     fn load_data(&self, account: &mut Account) -> Result<(), Box<dyn Error>> {
         let address = account.get_address().clone();
         let utxos_to_account = self.node.utxos_referenced_to_account(&address)?;
@@ -99,7 +100,7 @@ impl Wallet {
         Ok(())
     }
 
-    /// Muestra el balance de las cuentas.
+    /// Shows the balance of the accounts.
     pub fn show_accounts_balance(&self) -> Result<(), Box<dyn Error>> {
         if self
             .accounts
@@ -107,7 +108,7 @@ impl Wallet {
             .map_err(|err| NodeCustomErrors::LockError(err.to_string()))?
             .is_empty()
         {
-            println!("No hay cuentas en la wallet!");
+            println!("No accounts in the wallet");
         }
         for account in self
             .accounts
@@ -116,7 +117,7 @@ impl Wallet {
             .iter()
         {
             println!(
-                "Cuenta: {} - Balance: {:.8} tBTC",
+                "Account: {} - Balance: {:.8} tBTC",
                 account.address,
                 account.balance() as f64 / 1e8
             );
@@ -124,8 +125,8 @@ impl Wallet {
         Ok(())
     }
 
-    /// Cambia el indice de la cuenta actual de la wallet. Si se le pasa un indice fuera de rango devuelve error.
-    /// En caso de que se cambie correctamente, le envia un evento a la UI para que la actualice
+    /// Changes the index of the current account of the wallet. If an index out of range is passed, it returns an error.
+    /// If it is changed correctly, it sends an event to the UI to update it.
     pub fn change_account(
         &mut self,
         ui_sender: &Option<glib::Sender<UIEvent>>,
@@ -153,7 +154,7 @@ impl Wallet {
         Ok(())
     }
 
-    /// Muestra los indices que corresponden a cada cuenta
+    /// Shows the indexes of the accounts
     pub fn show_indexes_of_accounts(&self) -> Result<(), Box<dyn Error>> {
         if self
             .accounts
@@ -161,13 +162,13 @@ impl Wallet {
             .map_err(|err| NodeCustomErrors::LockError(err.to_string()))?
             .is_empty()
         {
-            println!("No hay cuentas en la wallet. No es posible realizar una transaccion!");
+            println!("There are no accounts in the wallet. It is not possible to make a transaction!");
             return Err(Box::new(std::io::Error::new(
                 io::ErrorKind::Other,
-                "No hay cuentas en la wallet. No es posible realizar una transaccion!",
+                "There are no accounts in the wallet. It is not possible to make a transaction!",
             )));
         }
-        println!("INDICES DE LAS CUENTAS");
+        println!("ACCOUNT INDEXES:");
         for (index, account) in self
             .accounts
             .read()
@@ -181,9 +182,9 @@ impl Wallet {
         Ok(())
     }
 
-    /// Solicita al nodo la proof of inclusion de la transacción
-    /// Recibe el hash de la transacción y del bloque en que se encuentra.
-    /// Evalúa la POI y devuelve true o false
+    /// Request the node the proof of inclusion of the transaction
+    /// Receives the hash of the transaction and the block where it is.
+    /// Evaluates the POI and returns true or false
     pub fn tx_proof_of_inclusion(
         &self,
         block_hash_hex: String,
@@ -203,7 +204,8 @@ impl Wallet {
         Ok(make_merkle_proof(&hashes, &tx_hash))
     }
 
-    /// Devuelve la cuenta actual de la wallet
+    /// Returns the current account of the wallet
+    /// If there is no current account returns None
     pub fn get_current_account(&self) -> Option<Account> {
         if let Some(index) = self.current_account_index {
             return Some(
@@ -217,8 +219,8 @@ impl Wallet {
         None
     }
 
-    /// Devuelve una lista con las transacciones de la cuenta actual
-    /// Si no hay cuenta actual devuelve None
+    /// Returns a list with the transactions of the current account
+    /// If there is no current account returns None
     pub fn get_transactions(&self) -> Option<Vec<(String, Transaction, i64)>> {
         if let Some(index) = self.current_account_index {
             match self
@@ -234,26 +236,27 @@ impl Wallet {
         }
         None
     }
-    /// Busca un bloque en la blockchain
-    /// Recibe el hash del bloque en formato hex
-    /// Devuelve el bloque si lo encuentra, None en caso contrario
+    /// Search a block in the blockchain
+    /// Receives the hash of the block in hex format
+    /// Returns the block if found, None otherwise
     pub fn search_block(&self, hash: [u8; 32]) -> Option<Block> {
         self.node.search_block(hash)
     }
 
-    /// Busca un header en la blockchain
-    /// Recibe el hash del header en formato hex
-    /// Devuelve el header si lo encuentra, None en caso contrario
+    /// Search a header in the blockchain
+    /// Receives the hash of the header in hex format
+    /// Returns the header if found, None otherwise
     pub fn search_header(&self, hash: [u8; 32]) -> Option<(BlockHeader, usize)> {
         self.node.search_header(hash)
     }
 }
 
+/// Validates that the amount and fee are greater than zero
 fn validate_transaction_data(amount: i64, fee: i64) -> Result<(), Box<dyn Error>> {
     if (amount + fee) <= 0 {
         return Err(Box::new(std::io::Error::new(
             io::ErrorKind::Other,
-            "El monto a gastar debe ser mayor a cero.",
+            "Error trying to make transaction. Amount and fee must be greater than zero",
         )));
     }
     Ok(())
