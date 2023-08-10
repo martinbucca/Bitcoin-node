@@ -50,9 +50,9 @@ pub fn initial_block_download(
 ) -> Result<Blockchain, NodeCustomErrors> {
     write_in_log(
         &log_sender.info_log_sender,
-        "EMPIEZA DESCARGA INICIAL DE BLOQUES",
+        "STARTS INITIAL BLOCK DOWNLOAD\n",
     );
-    // el vector de headers empieza con el header del bloque genesis
+    // The list of headers starts with the genesis block header
     let headers = vec![GENESIS_BLOCK_HEADER];
     let pointer_to_headers = Arc::new(RwLock::new(headers));
     let blocks: HashMap<[u8; 32], Block> = HashMap::new();
@@ -102,11 +102,11 @@ pub fn initial_block_download(
         get_amount_of_headers_and_blocks(&pointer_to_headers, &pointer_to_blocks)?;
     write_in_log(
         &log_sender.info_log_sender,
-        format!("TOTAL DE HEADERS DESCARGADOS: {}", amount_of_headers).as_str(),
+        format!("TOTAL HEADERS DOWNLOADED: {}", amount_of_headers).as_str(),
     );
     write_in_log(
         &log_sender.info_log_sender,
-        format!("TOTAL DE BLOQUES DESCARGADOS: {}\n", amount_of_blocks).as_str(),
+        format!("TOTAL BLOCKS DOWNLOADED: {}\n", amount_of_blocks).as_str(),
     );
     Ok(Blockchain::new(
         pointer_to_headers,
@@ -116,9 +116,9 @@ pub fn initial_block_download(
     ))
 }
 
-/// Se encarga de descargar todos los headers y bloques de la blockchain en multiples thread, en un thread descarga los headers
-/// y en el otro a medida que se van descargando los headers va pidiendo los bloques correspondientes.
-/// Devuelve error en caso de falla.
+/// Downloads all the headers and blocks of the blockchain in multiple threads. In one thread it downloads the headers
+/// and in the other as the headers are downloaded it asks for the corresponding blocks. Returns Ok(()) if the blockchain
+/// is downloaded correctly or an error if it fails.
 fn download_full_blockchain_from_multiple_nodes(
     config: &Arc<Config>,
     log_sender: &LogSender,
@@ -174,8 +174,8 @@ fn download_full_blockchain_from_multiple_nodes(
     Ok(())
 }
 
-/// Se encarga de descargar todos los headers y bloques de la blockchain en un solo thread, primero descarga todos los headers
-/// y luego descarga todos los bloques. Devuelve error en caso de falla.
+/// Downloads all the headers and blocks of the blockchain in a single thread. First downloads all the headers
+/// and then downloads all the blocks. Returns Ok(()) if the blockchain is downloaded correctly or an error if it fails.
 fn download_full_blockchain_from_single_node(
     config: &Arc<Config>,
     log_sender: &LogSender,
@@ -221,7 +221,7 @@ fn download_full_blockchain_from_single_node(
     Ok(())
 }
 
-/// Actualiza el utxo_set a medida que recibe los bloques por el channel
+/// Updates the utxo_set as it receives the blocks through the channel.
 fn load_utxo_set(
     rx: Receiver<Vec<Block>>,
     utxo_set: UtxoSetPointer,

@@ -11,8 +11,8 @@ use std::{
 
 use super::{blocks_download::amount_of_blocks, headers_download::amount_of_headers};
 
-/// Devuelve el ultimo nodo de la lista de nodos conectados para descargar los headers de la blockchain
-/// En caso de no haber mas nodos disponibles devuelve un error
+/// Returns the last node of the list of connected nodes to download the headers of the blockchain.
+/// If there are no more nodes available, it returns an error.
 pub fn get_node(nodes: Arc<RwLock<Vec<TcpStream>>>) -> Result<TcpStream, NodeCustomErrors> {
     let node = nodes
         .write()
@@ -21,15 +21,13 @@ pub fn get_node(nodes: Arc<RwLock<Vec<TcpStream>>>) -> Result<TcpStream, NodeCus
     match node {
         Some(node) => Ok(node),
         None => Err(NodeCustomErrors::BlockchainDownloadError(
-            "Error no hay mas nodos conectados para descargar los headers de la blockchain!\n"
-                .to_string(),
+            "Error there are no more nodes available".to_string(),
         )),
     }
 }
 
-/// Agrega el nodo recibido por parametro a la lista de nodos conectados
-/// Devuelve error en caso de no poder acceder al vector de nodos.
-/// Ok en caso contrario
+/// Adds the node received by parameter to the list of connected nodes.
+/// Returns an error if you cannot access the list of nodes or Ok(()) if the node is added correctly.
 pub fn return_node_to_vec(
     nodes: Arc<RwLock<Vec<TcpStream>>>,
     node: TcpStream,
@@ -41,7 +39,7 @@ pub fn return_node_to_vec(
     Ok(())
 }
 
-/// Recibe un vector de handles de threads y espera a que terminen todos, si alguno falla devuelve error
+/// Receives a vector of thread handles and waits for them all to finish, if any fails it returns an error.
 pub fn join_threads(
     handles: Vec<thread::JoinHandle<Result<(), NodeCustomErrors>>>,
 ) -> Result<(), NodeCustomErrors> {
@@ -53,7 +51,7 @@ pub fn join_threads(
     Ok(())
 }
 
-/// Recibe un puntero a un vector de headers y un puntero a un hashmap de bloques y devuelve la cantidad de headers y bloques que hay en cada uno
+/// Receives a pointer to a vector of headers and a pointer to a hashmap of blocks and returns the amount of headers and blocks in each one.
 pub fn get_amount_of_headers_and_blocks(
     headers: &Arc<RwLock<Vec<BlockHeader>>>,
     blocks: &Arc<RwLock<HashMap<[u8; 32], Block>>>,
