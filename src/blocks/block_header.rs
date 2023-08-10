@@ -1,8 +1,8 @@
 use bitcoin_hashes::{sha256d, Hash};
 use chrono::{TimeZone, Utc, DateTime, Local};
 
-/// Representa el Block Header del protocolo bitcoin
 #[derive(Debug, PartialEq, Clone, Copy)]
+/// Represents the Block Header of the bitcoin protocol.
 pub struct BlockHeader {
     pub version: i32,
     pub previous_block_header_hash: [u8; 32],
@@ -13,7 +13,7 @@ pub struct BlockHeader {
 }
 
 impl BlockHeader {
-    /// Inicializa el BlockHeader con los campos recibidos.
+    /// Creates a new BlockHeader with the received fields.
     pub fn new(
         version: i32,
         previous_block_header_hash: [u8; 32],
@@ -32,15 +32,15 @@ impl BlockHeader {
         }
     }
 
-    /// Recibe una cadena de bytes, la deserializa y devuelve el Block Header.
-    /// Actualiza el offset según la cantidad de bytes que leyó de la cadena.
+    /// Receives a byte array, deserializes it and returns the Block Header.
+    /// Updates the offset according to the amount of bytes it read from the byte array.
     pub fn unmarshalling(
         block_header_message: &[u8],
         offset: &mut usize,
     ) -> Result<BlockHeader, &'static str> {
         if block_header_message.len() - *offset < 80 {
             return Err(
-                "Los bytes recibidos no corresponden a un BlockHeader, el largo es menor a 80 bytes",
+                "The received bytes are not enough to deserialize the block header message",
             );
         }
         let mut version_bytes: [u8; 4] = [0; 4];
@@ -75,8 +75,8 @@ impl BlockHeader {
         })
     }
 
-    /// Convierte el Block Header a bytes según el protocolo bitcoin.
-    /// Guarda dichos bytes en el vector recibido por parámetro.
+    /// Converts the Block Header to bytes according to the bitcoin protocol.
+    /// Saves those bytes in the vector received by parameter.
     pub fn marshalling(&self, marshaled_block_header: &mut Vec<u8>) {
         let version_bytes = self.version.to_le_bytes();
         marshaled_block_header.extend_from_slice(&version_bytes);
@@ -90,7 +90,7 @@ impl BlockHeader {
         marshaled_block_header.extend_from_slice(&nonce_bytes);
     }
 
-    /// Devuelve el hash del Block Header
+    /// Returns the hash of the Block Header.
     pub fn hash(&self) -> [u8; 32] {
         let mut block_header_marshaled: Vec<u8> = Vec::new();
         self.marshalling(&mut block_header_marshaled);
@@ -98,33 +98,33 @@ impl BlockHeader {
         *hash_block.as_byte_array()
     }
 
-    /// Devuelve un string que representa el hash del bloque en hexadecimal,
-    /// En el formato que se usan los exploradores web como
-    /// https://blockstream.info/testnet/ para mostrar bloques
+    /// Returns a string that represents the block hash in hexadecimal.
+    /// The format is the same that is used in web explorers (e.g https://blockstream.info/testnet/)
+    /// to show blocks
     pub fn hex_hash(&self) -> String {
         bytes_to_hex_hash(self.hash())
     }
-    /// Devuelve un string que representa el hash del merkle root en hexadecimal,
-    /// En el formato que se usan los exploradores web
+
+    /// Returns a string that represents the merkle root hash in hexadecimal.
+    /// The format is the same that is used in web explorers (e.g https://blockstream.info/testnet/)
     pub fn hex_merkle_root_hash(&self) -> String {
         bytes_to_hex_hash(self.merkle_root_hash)
     }
 
-    /// Esta funcion realiza la proof of work
-    /// Valida el Block Header.
-    /// Devuelve true o false según pasa la validación o no.
+    /// Makes the proof of work. Validates the Block Header.
+    /// Returns true or false according to whether the validation passes or not.
     pub fn validate(&self) -> bool {
         let n_bits_bytes = self.n_bits.to_be_bytes();
-        let mut mantisa = Vec::new();
-        mantisa.extend_from_slice(&n_bits_bytes[1..4]);
-        let primer_byte: u8 = n_bits_bytes[0];
-        if primer_byte > 32 {
+        let mut mantissa = Vec::new();
+        mantissa.extend_from_slice(&n_bits_bytes[1..4]);
+        let first_byte: u8 = n_bits_bytes[0];
+        if first_byte > 32 {
             return false;
         }
-        let posicion_inicial_mantisa = 32 - primer_byte;
+        let initial_mantissa_position = 32 - first_byte;
         let mut target: [u8; 32] = [0; 32];
         for i in 0..3 {
-            target[(posicion_inicial_mantisa as usize) + i] = mantisa[i];
+            target[(initial_mantissa_position as usize) + i] = mantissa[i];
         }
 
         let mut block_hash: [u8; 32] = self.hash();
@@ -135,24 +135,24 @@ impl BlockHeader {
         false
     }
 
-    /// Compara la raiz del merkle root
+    /// Compares the merkle root hash of the block with the received hash.
     pub fn is_same_merkle_root_hash(&self, received_hash: &[u8; 32]) -> bool {
         self.merkle_root_hash == *received_hash
     }
 
-    /// Devuelve un string que representa el timestamp del bloque en formato UTC
+    /// Returns a string that represents the timestamp of the block in local date format
     pub fn local_time(&self) -> String {
         local_time_to_string(self.time as i64)
     }
 }
-/// Recibe el tiempo en formato UTC y lo devuelve en formato String
+/// Receives an i64 that represents the time in UTC and returns a String that represents the time in local format.
 fn local_time_to_string(time: i64) -> String {
     let dt_utc = Utc.timestamp_opt(time, 0).unwrap();
     let dt_local: DateTime<_> = Utc.from_utc_datetime(&dt_utc.naive_utc()).with_timezone(&Local);
     dt_local.format("%Y-%m-%d %H:%M:%S").to_string()
 }
 
-/// Convierte un vector de bytes a un string que representa el hash en hexadecimal,
+/// Converts a vector of bytes to a string that represents the hash in hexadecimal.
 fn bytes_to_hex_hash(hash_as_bytes: [u8; 32]) -> String {
     let inverted_hash: [u8; 32] = {
         let mut inverted = [0; 32];
@@ -173,75 +173,75 @@ mod tests {
     use super::BlockHeader;
     use bitcoin_hashes::{sha256d, Hash};
 
-    /// Función auxiliar que inicializa un Block Header
-    fn generar_block_header() -> Result<BlockHeader, &'static str> {
+    /// Auxiliary function that initializes a Block Header
+    fn generate_block_header() -> Result<BlockHeader, &'static str> {
         let mut message_header: Vec<u8> = Vec::new();
         for i in 0..80 {
             message_header.push(i as u8);
         }
         let mut offset: usize = 0;
-        let blockheader = BlockHeader::unmarshalling(&message_header, &mut offset)?;
-        Ok(blockheader)
+        let block_header = BlockHeader::unmarshalling(&message_header, &mut offset)?;
+        Ok(block_header)
     }
 
     #[test]
-    fn test_deserializacion_del_header_genera_version_esperada() -> Result<(), &'static str> {
-        let blockheader: BlockHeader = generar_block_header()?;
+    fn test_deserialization_of_header_generates_expected_version() -> Result<(), &'static str> {
+        let block_header: BlockHeader = generate_block_header()?;
         let expected_value = 0x3020100;
-        assert_eq!(blockheader.version, expected_value);
+        assert_eq!(block_header.version, expected_value);
         Ok(())
     }
 
     #[test]
-    fn test_deserializacion_del_header_genera_previous_block_header_hash_esperado(
+    fn test_deserialization_of_header_generates_expected_previous_block_header_hash(
     ) -> Result<(), &'static str> {
-        let blockeheader: BlockHeader = generar_block_header()?;
+        let block_header: BlockHeader = generate_block_header()?;
         let expected_value = [
             4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,
             27, 28, 29, 30, 31, 32, 33, 34, 35,
         ];
-        assert_eq!(blockeheader.previous_block_header_hash, expected_value);
+        assert_eq!(block_header.previous_block_header_hash, expected_value);
         Ok(())
     }
 
     #[test]
-    fn test_deserializacion_del_header_genera_merkle_root_hash_esperado() -> Result<(), &'static str>
+    fn test_deserialization_of_header_generates_expected_merkle_root_hash() -> Result<(), &'static str>
     {
-        let blockeheader: BlockHeader = generar_block_header()?;
+        let block_header: BlockHeader = generate_block_header()?;
         let expected_value = [
             36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57,
             58, 59, 60, 61, 62, 63, 64, 65, 66, 67,
         ];
-        assert_eq!(blockeheader.merkle_root_hash, expected_value);
+        assert_eq!(block_header.merkle_root_hash, expected_value);
         Ok(())
     }
 
     #[test]
-    fn test_deserializacion_del_header_genera_time_esperado() -> Result<(), &'static str> {
-        let blockeheader: BlockHeader = generar_block_header()?;
+    fn test_deserialization_of_header_generates_expected_time() -> Result<(), &'static str> {
+        let block_header: BlockHeader = generate_block_header()?;
         let expected_value = 0x47464544;
-        assert_eq!(blockeheader.time, expected_value);
+        assert_eq!(block_header.time, expected_value);
         Ok(())
     }
 
     #[test]
-    fn test_deserializacion_del_header_genera_nbits_esperado() -> Result<(), &'static str> {
-        let blockeheader: BlockHeader = generar_block_header()?;
+    fn test_deserialization_of_header_generates_expected_nbits() -> Result<(), &'static str> {
+        let block_header: BlockHeader = generate_block_header()?;
         let expected_value = 0x4B4A4948;
-        assert_eq!(blockeheader.n_bits, expected_value);
+        assert_eq!(block_header.n_bits, expected_value);
         Ok(())
     }
 
     #[test]
-    fn test_deserializacion_del_header_genera_nonce_esperado() -> Result<(), &'static str> {
-        let blockeheader: BlockHeader = generar_block_header()?;
+    fn test_deserialization_of_header_generates_expected_nonce() -> Result<(), &'static str> {
+        let block_header: BlockHeader = generate_block_header()?;
         let expected_value = 0x4F4E4D4C;
-        assert_eq!(blockeheader.nonce, expected_value);
+        assert_eq!(block_header.nonce, expected_value);
         Ok(())
     }
 
     #[test]
-    fn test_serializacion_correcta_del_campo_version() -> Result<(), &'static str> {
+    fn test_successful_serialization_of_version_field() -> Result<(), &'static str> {
         let mut block_header_message: Vec<u8> = Vec::new();
         let block = BlockHeader {
             version: 50462976,
@@ -258,8 +258,9 @@ mod tests {
         assert_eq!(expected_block.version, expected_value);
         Ok(())
     }
+
     #[test]
-    fn test_serializacion_correcta_del_campo_previous_block_header_hash() -> Result<(), &'static str>
+    fn test_successful_serialization_of_previous_block_header_hash_field() -> Result<(), &'static str>
     {
         let mut block_header_message: Vec<u8> = Vec::new();
         let value = [1; 32];
@@ -277,8 +278,9 @@ mod tests {
         assert_eq!(expected_block.previous_block_header_hash, value);
         Ok(())
     }
+
     #[test]
-    fn test_serializacion_correcta_del_campo_merkle_root_hash() -> Result<(), &'static str> {
+    fn test_successful_serialization_of_merkle_root_hash_field() -> Result<(), &'static str> {
         let mut block_header_message: Vec<u8> = Vec::new();
         let value = [1; 32];
         let block = BlockHeader {
@@ -295,8 +297,9 @@ mod tests {
         assert_eq!(expected_block.merkle_root_hash, value);
         Ok(())
     }
+
     #[test]
-    fn test_serializacion_correcta_del_campo_time() -> Result<(), &'static str> {
+    fn test_successful_serialization_of_time_field() -> Result<(), &'static str> {
         let mut block_header_message: Vec<u8> = Vec::new();
         let value = 0x03020100;
         let block = BlockHeader {
@@ -313,8 +316,9 @@ mod tests {
         assert_eq!(expected_block.time, value);
         Ok(())
     }
+
     #[test]
-    fn test_serializacion_correcta_del_campo_nbits() -> Result<(), &'static str> {
+    fn test_successful_serialization_of_nbits_field() -> Result<(), &'static str> {
         let mut block_header_message: Vec<u8> = Vec::new();
         let value = 0x03020100;
         let block = BlockHeader {
@@ -331,8 +335,9 @@ mod tests {
         assert_eq!(expected_block.n_bits, value);
         Ok(())
     }
+
     #[test]
-    fn test_serializacion_correcta_del_campo_nonce() -> Result<(), &'static str> {
+    fn test_successful_serialization_of_nonce_field() -> Result<(), &'static str> {
         let mut block_header_message: Vec<u8> = Vec::new();
         let value = 0x03020100;
         let block = BlockHeader {
@@ -349,8 +354,9 @@ mod tests {
         assert_eq!(expected_block.nonce, value);
         Ok(())
     }
+
     #[test]
-    fn test_el_header_es_hasheado_correctamente() {
+    fn test_header_is_hashed_correctly() {
         let block_header = BlockHeader {
             version: 0x03020100,
             previous_block_header_hash: [0; 32],
@@ -373,12 +379,13 @@ mod tests {
     }
 
     #[test]
-    fn test_validate_de_un_bloque_valido_devuelve_true() {
+    fn test_validate_valid_block_returns_true() {
         let block: BlockHeader = BlockHeader::new(0, [0; 32], [0; 32], 0, 0x20ffffff, 0);
         assert!(block.validate())
     }
+
     #[test]
-    fn test_validate_de_un_bloque_valido_devuelve_false() {
+    fn test_validate_invalid_block_returns_false() {
         let block: BlockHeader = BlockHeader::new(0, [0; 32], [0; 32], 0, 0x10ffffff, 0);
         assert!(!block.validate())
     }
