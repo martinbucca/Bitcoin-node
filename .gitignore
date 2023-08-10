@@ -1,0 +1,8 @@
+target
+.vscode
+/logs
+logs/error.txt
+logs/info.txt
+logs/message.txt
+/first_headers.csv
+/.DS_Store
