@@ -15,7 +15,7 @@ type Headers = Arc<RwLock<Vec<BlockHeader>>>;
 type Height = usize;
 
 #[derive(Clone, Debug)]
-/// Representa los eventos que la wallet le envia a la UI para que los muestre
+/// Represents the events that the wallet sends to the UI to display
 pub enum UIEvent {
     StartHandshake,
     StartDownloadingHeaders,
@@ -29,8 +29,8 @@ pub enum UIEvent {
     ShowPendingTransaction(Account, Transaction),
     AddBlock(Block),
     InitializeUITabs((Headers, Blocks)),
-    ActualizeHeadersDownloaded(usize),
-    ActualizeBlocksDownloaded(usize, usize),
+    UpdateHeadersDownloaded(usize),
+    UpdateBlocksDownloaded(usize, usize),
     MakeTransactionStatus(String),
     NewPendingTx(),
     UpdateTransactions(Vec<(String, Transaction, i64)>),
@@ -40,11 +40,11 @@ pub enum UIEvent {
     NotFound,
 }
 
-/// Envia un evento a la interfaz
+/// Sends an event to the UI
 pub fn send_event_to_ui(ui_sender: &Option<glib::Sender<UIEvent>>, event: UIEvent) {
     if let Some(ui_sender) = ui_sender {
         ui_sender
             .send(event)
-            .expect("Error al enviar el evento a la interfaz");
+            .expect("Error trying to send event to UI");
     }
 }

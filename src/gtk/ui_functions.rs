@@ -28,6 +28,8 @@ type Headers = Arc<RwLock<Vec<BlockHeader>>>;
 const AMOUNT_TO_SHOW: usize = 500;
 const ICON_FILE: &str = "src/gtk/resources/icon.png";
 
+
+/// Handles each event received from the wallet. Decide what to do with each event.
 pub fn handle_ui_event(
     builder: Builder,
     ui_event: UIEvent,
@@ -35,16 +37,16 @@ pub fn handle_ui_event(
 ) {
     let tx_table: TreeView = builder
         .object("tx_table")
-        .expect("Error al obtener la tabla de tx");
+        .expect("Error trying to get the table of transactions");
     match ui_event {
-        UIEvent::ActualizeBlocksDownloaded(blocks_downloaded, blocks_to_download) => {
-            actualize_progress_bar(&builder, blocks_downloaded, blocks_to_download);
+        UIEvent::UpdateBlocksDownloaded(blocks_downloaded, blocks_to_download) => {
+            update_progress_bar(&builder, blocks_downloaded, blocks_to_download);
         }
         UIEvent::StartHandshake => {
-            actualize_message_header(&builder, "Making handshake with nodes...");
+            update_message_header(&builder, "Making handshake with nodes...");
         }
-        UIEvent::ActualizeHeadersDownloaded(headers_downloaded) => {
-            actualize_message_header(
+        UIEvent::UpdateHeadersDownloaded(headers_downloaded) => {
+            update_message_header(
                 &builder,
                 format!("Headers downloaded: {}", headers_downloaded).as_str(),
             );
@@ -55,19 +57,19 @@ pub fn handle_ui_event(
         UIEvent::StartDownloadingHeaders => {
             let message_header: gtk::Label = builder
                 .object("message-header")
-                .expect("No se pudo obtener el label de message-header");
+                .expect("Error trying to get the message header label");
             let spinner: Spinner = builder
                 .object("header-spin")
-                .expect("No se pudo obtener el spinner de headers");
+                .expect("Error trying to get the header spinner");
             let headers_box: gtk::Box = builder
                 .object("headers-box")
-                .expect("No se pudo obtener el box de headers");
+                .expect("Error trying to get the headers box");
             headers_box.set_visible(true);
             message_header.set_visible(true);
             spinner.set_visible(true);
         }
         UIEvent::FinsihDownloadingHeaders(headers) => {
-            actualize_message_and_spinner(
+            update_message_and_spinner(
                 &builder,
                 false,
                 format!("TOTAL HEADERS DOWNLOADED: {}", headers).as_str(),
@@ -90,14 +92,13 @@ pub fn handle_ui_event(
             println!("Account changed to: {}", account.address);
             let available_label = builder
                 .object("available label")
-                .expect("No se pudo obtener el label de available account");
+                .expect("Error trying to get the available label");
             update_overview(&account, &available_label, &builder);
-
-            // actualiza la pestana de transacciones
+            // updates the transactions tab
             sender_to_node
                 .send(WalletEvent::GetTransactionsRequest)
                 .expect(
-                    "Error al enviar el evento de get transactions request al cambiar de cuenta",
+                    "Error sending get transactions request after changing account in ui_events",
                 );
         }
         UIEvent::MakeTransactionStatus(status) => {
@@ -118,7 +119,7 @@ pub fn handle_ui_event(
             );
             sender_to_node
                 .send(WalletEvent::GetTransactionsRequest)
-                .expect("Error al enviar el evento de get transactions request al mostrar transaccion pendiente");
+                .expect("Error sending get transactions request");
         }
 
         UIEvent::UpdateTransactions(transactions) => {
@@ -129,7 +130,7 @@ pub fn handle_ui_event(
         UIEvent::NewPendingTx() => {
             sender_to_node
                 .send(WalletEvent::GetTransactionsRequest)
-                .expect("Error al enviar el evento de get transactions request al mostrar una nueva transaccion pendiente");
+                .expect("Error sending get transactions request");
         }
         UIEvent::ShowConfirmedTransaction(block, account, transaction) => {
             show_dialog_message_pop_up(
@@ -144,7 +145,7 @@ pub fn handle_ui_event(
             );
             sender_to_node
                 .send(WalletEvent::GetTransactionsRequest)
-                .expect("Error al enviar el evento de get transactions request al mostrar transacciones confirmadas");
+                .expect("Error sending get transactions request");
         }
         UIEvent::BlockFound(block) => {
             show_dialog_message_pop_up(
@@ -152,7 +153,7 @@ pub fn handle_ui_event(
                     "Height: {} \nHash: {} \nTime (UTC): {} \nTx Count: {}",
                     block.get_height(),
                     block.hex_hash(),
-                    block.utc_time(),
+                    block.local_time(),
                     block.txn_count.decoded_value()
                 )
                 .as_str(),
@@ -180,7 +181,7 @@ pub fn handle_ui_event(
     }
 }
 
-/// Muestra las transacciones en la pestana de transacciones
+/// Shows the transactions in the transactions tab.
 fn render_transactions(transactions: &Vec<(String, Transaction, i64)>, tx_table: TreeView) {
     let tree_model = gtk::ListStore::new(&[
         gdk_pixbuf::Pixbuf::static_type(),
@@ -192,10 +193,10 @@ fn render_transactions(transactions: &Vec<(String, Transaction, i64)>, tx_table:
 
     for tx in transactions {
         let status_icon_pixbuf = if tx.0 == "Pending" {
-            // Cargar la imagen "Pending.png" y convertirla en un GdkPixbuf
+            // Load the image "Pending.png" and convert it to a GdkPixbuf
             Pixbuf::from_file("src/gtk/resources/pending.png").ok()
         } else {
-            // Cargar la imagen "Confirmed.png" y convertirla en un GdkPixbuf
+            // Load the image "Confirmed.png" and convert it to a GdkPixbuf
             Pixbuf::from_file("src/gtk/resources/confirmed.png").ok()
         };
 
@@ -216,7 +217,7 @@ fn render_transactions(transactions: &Vec<(String, Transaction, i64)>, tx_table:
     tx_table.set_model(Some(&tree_model));
 }
 
-/// Shows the recent transactions in the overview tab
+/// Shows the recent transactions in the overview tab.
 fn render_recent_transactions(transactions: &Vec<(String, Transaction, i64)>, builder: &Builder) {
     // Get the last five elements or all elements if there are fewer than five
     let recent_transactions = if transactions.len() <= 5 {
@@ -255,17 +256,17 @@ fn render_recent_transactions(transactions: &Vec<(String, Transaction, i64)>, bu
     for (i, tx) in recent_transactions.iter().enumerate() {
         let hash: gtk::AccelLabel = builder
             .object(recent_tx[i])
-            .expect("error al obtener el label del hash de la transaccion reciente");
+            .expect("error trying to get the recent transaction");
         hash.set_label(&tx.1.hex_hash());
         hash.set_visible(true);
         let amount_label: gtk::AccelLabel = builder
             .object(amount_labels[i])
-            .expect("error al obtener el label del monto de la transaccion reciente");
+            .expect("error trying to get the amount label of the recent transaction");
         amount_label.set_label(format!("{} Satoshis", tx.2).as_str());
         amount_label.set_visible(true);
         let icon: gtk::Image = builder
             .object(icons[i])
-            .expect("error al obtener el icono de la transaccion reciente");
+            .expect("error trying to get the icon of the recent transaction");
         if tx.0 == "Pending" {
             icon.set_from_file(Some("src/gtk/resources/ov_pending.png"));
         } else {
@@ -274,34 +275,34 @@ fn render_recent_transactions(transactions: &Vec<(String, Transaction, i64)>, bu
         icon.set_visible(true);
         let type_label: gtk::AccelLabel = builder
             .object(type_labels[i])
-            .expect("error al obtener el label del tipo de la transaccion reciente");
+            .expect("error trying to get the type label of the recent transaction");
         type_label.set_visible(true);
     }
 }
 
-/// Agrega el bloque y header a las pestañas.
-/// Solicita a la wallet la cuenta para actualizar la información
+/// Adds a block and header to the tabs.
+/// Asks the wallet for the account to update the information.
 fn handle_add_block(sender_to_node: mpsc::Sender<WalletEvent>, builder: &Builder, block: &Block) {
     let liststore_blocks: gtk::ListStore = builder
         .object("liststore-blocks")
-        .expect("Error al obtener el liststore de bloques");
+        .expect("Error trying to get the liststore of blocks");
     let liststore_headers: gtk::ListStore = builder
         .object("liststore-headers")
-        .expect("Error al obtener el liststore de headers");
+        .expect("Error trying to get the liststore of headers");
 
     add_row_first_to_liststore_block(&liststore_blocks, block);
     add_row_first_to_liststore_headers(&liststore_headers, &block.block_header, block.get_height());
 
     sender_to_node
         .send(WalletEvent::GetAccountRequest)
-        .expect("Error al enviar el evento de solicitud de cuenta");
+        .expect("Error sending get account request");
 }
 
-/// Esta funcion renderiza la barra de carga de bloques descargados
-fn actualize_progress_bar(builder: &Builder, blocks_downloaded: usize, blocks_to_download: usize) {
+/// Updates and shows the progress bar representing the blocks download, in the initial window.
+fn update_progress_bar(builder: &Builder, blocks_downloaded: usize, blocks_to_download: usize) {
     let progress_bar: ProgressBar = builder
         .object("block-bar")
-        .expect("Error al obtener la barra de progreso");
+        .expect("Error trying to get the progress bar");
     progress_bar.set_fraction(blocks_downloaded as f64 / blocks_to_download as f64);
     progress_bar.set_text(Some(
         format!(
@@ -311,29 +312,32 @@ fn actualize_progress_bar(builder: &Builder, blocks_downloaded: usize, blocks_to
         .as_str(),
     ));
 }
-fn actualize_message_header(builder: &Builder, msg: &str) {
+
+/// Updates the amount of headers shown in the initial window.
+fn update_message_header(builder: &Builder, msg: &str) {
     let message_header: gtk::Label = builder
         .object("message-header")
-        .expect("Error al obtener el label del header mensaje");
+        .expect("Error trying to get the message header");
     message_header.set_label(msg);
 }
 
-fn actualize_message_and_spinner(builder: &Builder, visible: bool, msg: &str) {
+/// Shows the total headers downloaded in the initial window. Hinds the spinner and the message header.
+fn update_message_and_spinner(builder: &Builder, visible: bool, msg: &str) {
     let total_headers_label: gtk::Label = builder
         .object("total-headers")
-        .expect("Error al obtener el label del total de headers");
+        .expect("Error trying to get the total headers label");
     let total_headers_box: gtk::Box = builder
         .object("total-box")
-        .expect("Error al obtener el box del total de headers");
+        .expect("Error trying to get the total box");
     let message_header: gtk::Label = builder
         .object("message-header")
-        .expect("Error al obtener el label del header mensaje");
+        .expect("Error trying to get the message header");
     let headers_box: gtk::Box = builder
         .object("headers-box")
-        .expect("Error al obtener el box de headers");
+        .expect("Error trying to get the headers box");
     let spinner: Spinner = builder
         .object("header-spin")
-        .expect("Error al obtener el header spinner");
+        .expect("Error trying to get the header spinner");
     message_header.set_visible(visible);
     spinner.set_visible(visible);
     headers_box.set_visible(visible);
@@ -342,34 +346,35 @@ fn actualize_message_and_spinner(builder: &Builder, visible: bool, msg: &str) {
     total_headers_label.set_visible(true);
 }
 
+/// Shows the progess bar in the initial window.
 fn render_progress_bar(builder: &Builder) {
     let progress_bar: ProgressBar = builder
         .object("block-bar")
-        .expect("Error al obtener la barra de progreso");
+        .expect("Error trying to get the progress bar");
     progress_bar.set_visible(true);
     progress_bar.set_text(Some("Blocks downloaded: 0"));
 }
 
+/// Closes the initial window and initializes tand shows the main window.
 fn render_main_window(builder: &Builder, headers: &Headers, blocks: &Blocks) {
     let initial_window: gtk::Window = builder
         .object("initial-window")
-        .expect("Error al obtener la ventana inicial");
+        .expect("Error trying to get the initial window");
     let main_window: gtk::Window = builder
         .object("main-window")
-        .expect("Error al obtener la ventana principal");
+        .expect("Error trying to get the main window");
     let liststore_blocks: gtk::ListStore = builder
         .object("liststore-blocks")
-        .expect("Error al obtener el liststore de bloques");
+        .expect("Error trying to get the liststore of blocks");
     let liststore_headers: gtk::ListStore = builder
         .object("liststore-headers")
-        .expect("Error al obtener el liststore de headers");
+        .expect("Error trying to get the liststore of headers");
     let header_table: TreeView = builder
         .object("header_table")
-        .expect("Error al obtener la tabla de headers");
+        .expect("Error trying to get the table of headers");
     let block_table: TreeView = builder
         .object("block_table")
-        .expect("Error al obtener la tabla de bloques");
-
+        .expect("Error trying to get the table of blocks");
     initial_window.close();
     main_window.set_title("Bitcoin Wallet");
     set_icon(&main_window);
@@ -378,16 +383,17 @@ fn render_main_window(builder: &Builder, headers: &Headers, blocks: &Blocks) {
     initialize_blocks_tab(&liststore_blocks, &block_table, headers, blocks);
 }
 
+/// Updates the account tab with the account received.
 fn update_account_tab(builder: &Builder, account: Account) {
     let account_loading_spinner: Spinner = builder
         .object("account-spin")
-        .expect("Error al obtener el spinner de la cuenta");
+        .expect("Error trying to get the account spinner");
     let loading_account_label: gtk::Label = builder
         .object("load-account")
-        .expect("Error al obtener el label de la cuenta");
+        .expect("Error trying to get the account label");
     let dropdown: gtk::ComboBoxText = builder
         .object("dropdown-menu")
-        .expect("Error al obtener el dropdown menu");
+        .expect("Error trying to get the dropdown menu");
     account_loading_spinner.set_visible(false);
     loading_account_label.set_visible(false);
     let buttons = get_buttons(builder);
@@ -401,16 +407,17 @@ fn update_account_tab(builder: &Builder, account: Account) {
     dropdown.append_text(account.address.as_str());
 }
 
+/// Shows the account tab.
 fn render_account_tab(builder: &Builder) {
     let account_loading_spinner: Spinner = builder
         .object("account-spin")
-        .expect("Error al obtener el spinner de la cuenta");
+        .expect("Error trying to get the account spinner");
     let loading_account_label: gtk::Label = builder
         .object("load-account")
-        .expect("Error al obtener el label de la cuenta");
+        .expect("Error trying to get the account label");
     let dropdown: gtk::ComboBoxText = builder
         .object("dropdown-menu")
-        .expect("Error al obtener el dropdown menu");
+        .expect("Error trying to get the dropdown menu");
     let buttons = get_buttons(builder);
     let entries = get_entries(builder);
     enable_buttons_and_entries(&buttons, &entries);
@@ -419,58 +426,60 @@ fn render_account_tab(builder: &Builder) {
     dropdown.set_sensitive(true);
 }
 
-/// Esta funcion obtiene los botones de la interfaz
+/// Gets the buttons of the interface.
 pub fn get_buttons(builder: &Builder) -> Vec<gtk::Button> {
     let buttons = vec![
         builder
             .object("send-button")
-            .expect("Error al obtener el boton de enviar"),
+            .expect("Error trying to get the send button"),
         builder
             .object("search-tx-button")
-            .expect("Error al obtener el boton de buscar tx"),
+            .expect("Error trying to get the search tx button"),
         builder
             .object("search-blocks-button")
-            .expect("Error al obtener el boton de buscar bloques"),
+            .expect("Error trying to get the search blocks button"),
         builder
             .object("search-header-button")
-            .expect("Error al obtener el boton de buscar headers"),
+            .expect("Error trying to get the search header button"),
         builder
             .object("login-button")
-            .expect("Error al obtener el boton de login"),
+            .expect("Error trying to get the login button"),
     ];
     buttons
 }
-/// Esta funcion obtiene los entries de la interfaz
+/// Gets the entries of the interface.
 pub fn get_entries(builder: &Builder) -> Vec<gtk::Entry> {
     let entries = vec![
         builder
             .object("pay to entry")
-            .expect("Error al obtener el entry de pay to"),
+            .expect("Error trying to get the pay to entry"),
         builder
             .object("amount-entry")
-            .expect("Error al obtener el entry de amount"),
+            .expect("Error trying to get the amount entry"),
         builder
             .object("fee")
-            .expect("Error al obtener el entry de fee"),
+            .expect("Error trying to get the fee entry"),
         builder
             .object("search-tx")
-            .expect("Error al obtener el entry de search tx"),
+            .expect("Error trying to get the search tx entry"),
         builder
             .object("search-block")
-            .expect("Error al obtener el entry de search block"),
+            .expect("Error trying to get the search block entry"),
         builder
             .object("search-block-headers")
-            .expect("Error al obtener el entry de search block headers"),
+            .expect("Error trying to get the search block headers entry"),
         builder
             .object("address")
-            .expect("Error al obtener el entry de address"),
+            .expect("Error trying to get the address entry"),
         builder
             .object("private-key")
-            .expect("Error al obtener el entry de private key"),
+            .expect("Error trying to get the private key entry"),
     ];
     entries
 }
 
+/// Receives the liststore of blocks, a Treeview to show the blocks, the headers and the blocks.
+/// Initializes the blocks tab with the blocks and headers received.
 fn initialize_blocks_tab(
     liststore_blocks: &gtk::ListStore,
     block_table: &TreeView,
@@ -526,7 +535,7 @@ fn initialize_headers_tab(
         .unwrap()
         .iter()
         .enumerate()
-        .skip(1) // Salteo primer header
+        .skip(1) // Skip first header
         .take(AMOUNT_TO_SHOW / 2)
         .rev()
     {
@@ -536,31 +545,31 @@ fn initialize_headers_tab(
     header_table.set_model(Some(liststore_headers));
 }
 
-/// Agrega una fila al final de la lista de bloques
+/// Adds a row to the liststore of blocks.
 fn add_row_last_to_liststore_block(liststore_blocks: &gtk::ListStore, block: &Block) {
     let row = liststore_blocks.append();
     add_block_row(liststore_blocks, row, block);
 }
 
-/// Agrega una fila al principio de la lista de bloques
+/// Adds a row to the liststore of blocks.
 fn add_row_first_to_liststore_block(liststore_blocks: &gtk::ListStore, block: &Block) {
     let row = liststore_blocks.prepend();
     add_block_row(liststore_blocks, row, block);
 }
-/// Agrega una fila liststore de headers
+/// Adds a row to the liststore of blocks.
 fn add_block_row(liststore_blocks: &gtk::ListStore, row: gtk::TreeIter, block: &Block) {
     liststore_blocks.set(
         &row,
         &[
             (0, &block.get_height().to_value()),
             (1, &block.hex_hash()),
-            (2, &block.utc_time()),
+            (2, &block.local_time()),
             (3, &block.txn_count.decoded_value().to_value()),
         ],
     );
 }
 
-/// Agrega una fila al final de la lista de bloques
+/// Adds a row to the liststore of headers.
 fn add_row_last_to_liststore_headers(
     liststore_headers: &gtk::ListStore,
     header: &BlockHeader,
@@ -570,7 +579,7 @@ fn add_row_last_to_liststore_headers(
     add_header_row(liststore_headers, row, header, height);
 }
 
-/// Agrega una fila al principio de la lista de bloques
+/// Adds a row to the liststore of headers.
 fn add_row_first_to_liststore_headers(
     liststore_headers: &gtk::ListStore,
     header: &BlockHeader,
@@ -579,7 +588,7 @@ fn add_row_first_to_liststore_headers(
     let row = liststore_headers.prepend();
     add_header_row(liststore_headers, row, header, height);
 }
-/// Agrega una fila liststore de headers
+/// Adds a row to the liststore of headers.
 fn add_header_row(
     liststore_headers: &gtk::ListStore,
     row: gtk::TreeIter,
@@ -596,6 +605,7 @@ fn add_header_row(
     );
 }
 
+/// Updates the overview tab with the account information.
 fn update_overview(account: &Account, available_label: &gtk::Label, builder: &Builder) {
     available_label.set_label(format!("{}", account.balance()).as_str());
     let amount_labels = [
@@ -629,23 +639,24 @@ fn update_overview(account: &Account, available_label: &gtk::Label, builder: &Bu
     for i in 0..5 {
         let hash: gtk::AccelLabel = builder
             .object(recent_tx[i])
-            .expect("Error al obtener label de hash");
+            .expect("Error trying to get hash label");
         hash.set_visible(false);
         let amount_label: gtk::AccelLabel = builder
             .object(amount_labels[i])
-            .expect("Error al obtener label de amount");
+            .expect("Error trying to get amount label");
         amount_label.set_visible(false);
         let icon: gtk::Image = builder
             .object(icons[i])
-            .expect("Error al obtener label de icon");
+            .expect("Error trying to get icon");
         icon.set_visible(false);
         let type_label: gtk::AccelLabel = builder
             .object(type_labels[i])
-            .expect("Error al obtener label de type");
+            .expect("Error trying to get type label");
         type_label.set_visible(false);
     }
 }
 
+/// Enables the buttons and entries of the UI.
 pub fn enable_buttons_and_entries(buttons: &Vec<gtk::Button>, entries: &Vec<gtk::Entry>) {
     for button in buttons {
         button.set_sensitive(true);
@@ -655,6 +666,7 @@ pub fn enable_buttons_and_entries(buttons: &Vec<gtk::Button>, entries: &Vec<gtk:
     }
 }
 
+/// Disables the buttons and entries of the UI.
 pub fn disable_buttons_and_entries(buttons: &Vec<gtk::Button>, entries: &Vec<gtk::Entry>) {
     for button in buttons {
         button.set_sensitive(false);
@@ -664,6 +676,7 @@ pub fn disable_buttons_and_entries(buttons: &Vec<gtk::Button>, entries: &Vec<gtk
     }
 }
 
+/// Shows a pop up dialog with a message.
 pub fn show_dialog_message_pop_up(message: &str, title: &str) {
     let dialog = gtk::MessageDialog::new(
         None::<&Window>,
@@ -680,13 +693,13 @@ pub fn show_dialog_message_pop_up(message: &str, title: &str) {
     dialog.close();
 }
 
-/// Convierte un string hexadecimal a un array de bytes que representa el hash
-/// Recibe un string hexadecimal de 64 caracteres
-/// Devuelve un array de bytes de 32 bytes
-/// Si el string no es hexadecimal o no tiene 64 caracteres, devuelve None
+/// Converts a hexadecimal string to a byte array representing the hash.
+/// Receives a hexadecimal string of 64 characters.
+/// Returns an array of 32 bytes.
+/// If the string is not hexadecimal or does not have 64 characters, returns None.
 pub fn hex_string_to_bytes(hex_string: &str) -> Option<[u8; 32]> {
     if hex_string.len() != 64 {
-        return None; // La longitud del string hexadecimal debe ser de 64 caracteres (32 bytes en hexadecimal)
+        return None; // The length of the string is not 64
     }
     let mut result = [0u8; 32];
     let hex_chars: Vec<_> = hex_string.chars().collect();
@@ -695,15 +708,15 @@ pub fn hex_string_to_bytes(hex_string: &str) -> Option<[u8; 32]> {
         let end = start + 2;
         if let Ok(byte) = u8::from_str_radix(&hex_chars[start..end].iter().collect::<String>(), 16)
         {
-            result[31 - i] = byte; // Invertimos el orden de asignación para obtener el resultado invertido
+            result[31 - i] = byte; // Invert the order of the bytes
         } else {
-            return None; // La cadena contiene caracteres no hexadecimales
+            return None; // The string is not hexadecimal
         }
     }
     Some(result)
 }
 
-/// Le agrega el estilo del archivo css a la pantalla
+/// Adds the style of the css file to the screen.
 pub fn add_css_to_screen() {
     let css_provider: CssProvider = CssProvider::new();
     css_provider
@@ -717,7 +730,7 @@ pub fn add_css_to_screen() {
     );
 }
 
-/// Setea el icono a la app
+/// Sets the icon to the app.
 pub fn set_icon(window: &gtk::Window) {
     if let Ok(icon_pixbuf) = Pixbuf::from_file(ICON_FILE) {
             if let Some(icon) = icon_pixbuf.scale_simple(64, 64, gdk_pixbuf::InterpType::Bilinear) {
