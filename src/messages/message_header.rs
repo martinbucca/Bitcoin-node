@@ -12,7 +12,7 @@ const START_STRING_TESTNET: [u8; 4] = [0x0b, 0x11, 0x09, 0x07];
 const CHECKSUM_EMPTY_PAYLOAD: [u8; 4] = [0x5d, 0xf6, 0xe0, 0xe2];
 
 #[derive(Clone, Debug)]
-/// Representa el header de cualquier mensaje del protocolo bitcoin
+/// Represents the header of any message of the bitcoin protocol.
 pub struct HeaderMessage {
     pub start_string: [u8; 4],
     pub command_name: String,
@@ -21,8 +21,9 @@ pub struct HeaderMessage {
 }
 
 impl HeaderMessage {
-    /// Dado el nombre del comando y un Option que si es None representa que el comando
-    /// no tiene payload o un Vec<u8> representando al payload del mensaje devuelve el HeaderMessage de ese mensaje
+    /// Given the command name and an Option (if it is None represents that the command
+    /// does not have payload or a Vec<u8> representing the payload of the message) 
+    /// returns the HeaderMessage of that message.
     pub fn new(command_name: String, payload: Option<&[u8]>) -> Self {
         match payload {
             None => HeaderMessage {
@@ -39,8 +40,8 @@ impl HeaderMessage {
             },
         }
     }
-    /// Convierte el struct que representa el header de cualquier mensaje a bytes segun las reglas de
-    /// serializacion del protocolo bitcoin
+    /// Converts the struct that represents the header of any message to bytes according 
+    /// to the serialization rules of bitcoin protocol.
     pub fn to_le_bytes(&self) -> [u8; 24] {
         let mut header_message_bytes: [u8; 24] = [0; 24];
         header_message_bytes[0..4].copy_from_slice(&self.start_string);
@@ -49,8 +50,8 @@ impl HeaderMessage {
         header_message_bytes[20..24].copy_from_slice(&self.checksum);
         header_message_bytes
     }
-    /// Recibe los bytes de un header de un mensaje y los convierte a un struct HeaderMessage
-    /// de acuerdo al protocolo de bitcoin
+    /// Receives the bytes of a message header and converts them to a HeaderMessage struct
+    /// according to the bitcoin protocol
     pub fn from_le_bytes(bytes: [u8; 24]) -> Result<Self, Utf8Error> {
         let mut start_string = [0; 4];
         let mut counter = 0;
@@ -73,10 +74,9 @@ impl HeaderMessage {
             checksum,
         })
     }
-    /// Recibe un struct HeaderMessage que representa un el header de un mensaje segun protocolo de bitcoin
-    /// y un stream que implemente el trait Write (en donde se pueda escribir) y escribe el mensaje serializado
-    /// en bytes en el stream. Devuelve un error en caso de que no se haya podido escribir correctamente o un Ok en caso
-    /// de que se haya escrito correctamente
+    /// Receives a HeaderMessage struct that represents a message header according to the bitcoin protocol
+    /// and a stream that implements the Write trait (where you can write) and writes the serialized message
+    /// in bytes in the stream. Returns an error if it could not be written correctly or an Ok(()) if it was written correctly.
     pub fn write_to(&self, stream: &mut dyn Write) -> Result<(), Box<dyn std::error::Error>> {
         let header = self.to_le_bytes();
         stream.write_all(&header)?;
@@ -86,6 +86,8 @@ impl HeaderMessage {
     /// Recibe un stream que implemente el trait read (algo desde lo que se pueda leer) y el nombre del comando que se quiere leer
     /// y devuelve un HeaderMessage si se pudo leer correctamente uno desde el stream
     /// o Error si lo leido no corresponde a el header de un mensaje del protocolo de bitcoin
+    /// Receives a stream that implements the Read trait (something from which you can read) and the name of the command you want to read
+    /// and returns a HeaderMessage if it could be read correctly from the stream, error otherwise.
     pub fn read_from(
         log_sender: &LogSender,
         mut stream: &mut TcpStream,
@@ -103,14 +105,14 @@ impl HeaderMessage {
         let mut buffer_num = [0; 24];
         stream.read_exact(&mut buffer_num)?;
         let mut header = HeaderMessage::from_le_bytes(buffer_num)?;
-        // si no se leyo el header que se queria, sigo leyendo hasta encontrarlo
+        // if the wanted header was not read, keep reading until it is find or the program is terminated
         while header.command_name != header_command_name && !is_terminated(finish.clone()) {
             let payload = read_payload(&mut stream, &header)?;
             if header.command_name.contains("ping") {
                 write_in_log(
                     &log_sender.message_log_sender,
                     format!(
-                        "Recibo Correctamente: ping -- Nodo: {:?}",
+                        "Message received correctly: ping -- Node: {:?}",
                         stream.peer_addr()?
                     )
                     .as_str(),
@@ -120,7 +122,7 @@ impl HeaderMessage {
             write_in_log(
                 &log_sender.message_log_sender,
                 format!(
-                    "IGNORADO -- Recibo: {} -- Nodo: {:?}",
+                    "IGNORED -- Message received: {} -- Node: {:?}",
                     header.command_name,
                     stream.peer_addr()?
                 )
@@ -135,7 +137,7 @@ impl HeaderMessage {
             write_in_log(
                 &log_sender.message_log_sender,
                 format!(
-                    "Recibo Correctamente: {} -- Nodo: {:?}",
+                    "Message received correctly: {} -- Node: {:?}",
                     command_name,
                     stream.peer_addr()?
                 )
@@ -146,8 +148,8 @@ impl HeaderMessage {
     }
 }
 
-/// Consulta la variable finish recibida.
-/// Devuelve true o false dependiendo de si el programa debe finalizar
+/// Checks the received finish variable.
+/// Returns true or false depending on whether the program should end.
 pub fn is_terminated(finish: Option<Arc<RwLock<bool>>>) -> bool {
     match finish {
         Some(m) => *m.read().unwrap(),
@@ -155,8 +157,8 @@ pub fn is_terminated(finish: Option<Arc<RwLock<bool>>>) -> bool {
     }
 }
 
-/// Recibe el HeaderMessage y lee el payload correspondiente del stream,
-/// Devuelve los bytes leidos del stream
+/// Receives the HeaderMessage and reads the corresponding payload from the stream.
+/// Returns the bytes read from the stream
 fn read_payload(stream: &mut dyn Read, header: &HeaderMessage) -> io::Result<Vec<u8>> {
     let payload_size = header.payload_size as usize;
     let mut payload_buffer_num: Vec<u8> = vec![0; payload_size];
@@ -166,15 +168,18 @@ fn read_payload(stream: &mut dyn Read, header: &HeaderMessage) -> io::Result<Vec
 
 /// Recibe un stream que implemente el trait Write (algo donde se pueda escribir) y escribe el mensaje verack segun
 /// el protocolo de bitcoin, si se escribe correctamente devuelve Ok(()) y sino devuelve un error
+/// Receives a stream that implements the Write trait (something where you can write) and writes the verack message according to
+/// the bitcoin protocol. If it is written correctly it returns Ok(()), otherwise it returns an error.
 pub fn write_verack_message(stream: &mut dyn Write) -> Result<(), Box<dyn std::error::Error>> {
     let header = HeaderMessage::new("verack".to_string(), None);
     header.write_to(stream)?;
     Ok(())
 }
 
-/// Recibe un stream que implemente el trait Write (algo donde se pueda escribir) y el nonce del mensaje ping
-/// al que le tiene que responder y escribe el mensaje pong segun
-/// el protocolo de bitcoin, si se escribe correctamente devuelve Ok(()) y sino devuelve un error
+/// Receives a stream that implements the Write trait (something where you can write) and 
+/// the nonce of the ping message to which it must respond and writes the pong message 
+/// according to the bitcoin protocol. If it is written 
+/// correctly it returns Ok(()), otherwise it returns an error.
 pub fn write_pong_message(
     stream: &mut dyn Write,
     payload: &[u8],
@@ -189,15 +194,17 @@ pub fn write_pong_message(
     Ok(())
 }
 
-/// Recibe un stream que implemente el trait Write (algo donde se pueda escribir) y escribe el mensaje sendheaders segun
-/// el protocolo de bitcoin, si se escribe correctamente devuelve Ok(()) y sino devuelve un error
+/// Receives a stream that implements the Write trait (something where you can write) and 
+/// writes the sendheaders message according to the bitcoin protocol. If it is written
+/// correctly it returns Ok(()), otherwise it returns an error.
 pub fn write_sendheaders_message(stream: &mut dyn Write) -> Result<(), Box<dyn std::error::Error>> {
     let header = HeaderMessage::new("sendheaders".to_string(), None);
     header.write_to(stream)?;
     Ok(())
 }
-/// Recibe un stream que implemente el trait Read (algo donde se pueda Leer) y lee el mensaje verack segun
-/// el protocolo de bitcoin, si se lee correctamente devuelve Ok(HeaderMessage) y sino devuelve un error
+/// Receives a stream that implements the Read trait (something from which you can read) and 
+/// reads the verack message according to the bitcoin protocol. If it is read correctly it returns
+/// Ok(HeaderMessage), otherwise it returns an error.
 pub fn read_verack_message(
     log_sender: &LogSender,
     stream: &mut TcpStream,
@@ -205,9 +212,9 @@ pub fn read_verack_message(
     HeaderMessage::read_from(log_sender, stream, "verack".to_string(), None)
 }
 
-/// Recibe un String que representa el nombre del comando del Header Message
-/// y devuelve los bytes que representan ese string (ASCII) seguido de 0x00 para
-/// completar los 12 bytes
+/// Receives a String that represents the name of the Header Message command
+/// and returns the bytes that represent that string (ASCII) followed by 0x00 to
+/// complete the 12 bytes
 /// little-endian
 pub fn command_name_to_bytes(command: &String) -> [u8; 12] {
     let mut command_name_bytes = [0; 12];
@@ -217,13 +224,13 @@ pub fn command_name_to_bytes(command: &String) -> [u8; 12] {
     command_name_bytes
 }
 
-/// Genera el checksum del payload recibido.
-/// Devuelve los 4 bytes del checksum.
+/// Generates the checksum of the received payload.
+/// Returns the 4 bytes of the checksum.
 pub fn get_checksum(payload: &[u8]) -> [u8; 4] {
-    let sha_hash = sha256d::Hash::hash(payload); // hasheo doble de los bytes del payload
+    let sha_hash = sha256d::Hash::hash(payload); // double sha256 of payload
     let hash_bytes: [u8; 32] = sha_hash.to_byte_array(); // convert Hash to [u8; 32] array
     let mut checksum: [u8; 4] = [0u8; 4];
-    checksum.copy_from_slice(&hash_bytes[0..4]); // checksum devuelve los primeros 4 bytes de SHA256(SHA256(payload))
+    checksum.copy_from_slice(&hash_bytes[0..4]); // checksum returns the first 4 bytes of SHA256(SHA256(payload))
     checksum
 }
 #[cfg(test)]
@@ -235,89 +242,93 @@ mod tests {
     #[test]
     fn header_message_bytes_from_verack_message_unmarshalling_correctly(
     ) -> Result<(), Box<dyn Error>> {
-        // GIVEN : un header messege del mensaje verack en bytes
+        // GIVEN: a header message of verack message in bytes
         let header_message_bytes: [u8; 24] = [
             11, 17, 9, 7, 118, 101, 114, 97, 99, 107, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 93, 246, 224,
             226,
         ];
-        // WHEN: se ejecuta la funcion form_le_bytes del struct HeaderMessage con los bytes pasados por parametro
+        // WHEN: the from_le_bytes function of the HeaderMessage struct is executed with the provided bytes
         let header = HeaderMessage::from_le_bytes(header_message_bytes)?;
-        // THEN: se devuelve un struct HeaderMessage con los campos correctos segun el mensaje verack
+        // THEN: a HeaderMessage struct is returned with correct fields according to verack message
         assert_eq!([11u8, 17u8, 9u8, 7u8], header.start_string);
         assert_eq!("verack\0\0\0\0\0\0", header.command_name);
         assert_eq!(0, header.payload_size);
         assert_eq!([93u8, 246u8, 224u8, 226u8], header.checksum);
         Ok(())
     }
+
     #[test]
     fn header_message_bytes_from_version_message_unmarshalling_correctly(
     ) -> Result<(), Box<dyn Error>> {
-        // GIVEN : un header messege del mensaje version en bytes
+        // GIVEN: a header message of version message in bytes
         let header_message_bytes: [u8; 24] = [
             11, 17, 9, 7, 118, 101, 114, 115, 105, 111, 110, 0, 0, 0, 0, 0, 100, 0, 0, 0, 152, 16,
             0, 0,
         ];
-        // WHEN: se ejecuta la funcion form_le_bytes del struct HeaderMessage con los bytes pasados por parametro
+        // WHEN: the from_le_bytes function of the HeaderMessage struct is executed with the provided bytes
         let header = HeaderMessage::from_le_bytes(header_message_bytes)?;
-        // THEN: se devuelve un struct HeaderMessage con los campos correctos segun el mensaje version
+        // THEN: a HeaderMessage struct is returned with correct fields according to version message
         assert_eq!([11u8, 17u8, 9u8, 7u8], header.start_string);
         assert_eq!("version\0\0\0\0\0", header.command_name);
         assert_eq!(100, header.payload_size);
         assert_eq!([152u8, 16u8, 0u8, 0u8], header.checksum);
         Ok(())
     }
+
     #[test]
-    fn error_when_command_name_bytes_can_not_be_represented_as_string() {
-        // GIVEN : un header messege de un  mensaje con command name erroneo en bytes
+    fn error_when_command_name_bytes_cannot_be_represented_as_string() {
+        // GIVEN: a header message of a message with erroneous command name in bytes
         let header_message_bytes: [u8; 24] = [
             11, 17, 9, 7, 12, 101, 114, 13, 240, 111, 110, 1, 0, 0, 0, 11, 100, 0, 0, 0, 152, 16,
             0, 0,
         ];
-        // WHEN: se ejecuta la funcion form_le_bytes del struct HeaderMessage con los bytes pasados por parametro
+        // WHEN: the from_le_bytes function of the HeaderMessage struct is executed with the provided bytes
         let header = HeaderMessage::from_le_bytes(header_message_bytes);
-        // THEN: header es un error
+        // THEN: header is an error
         assert!(header.is_err());
         assert!(matches!(header, Err(_)));
     }
+
     #[test]
-    fn header_message_of_a_verack_message_marshalling_correctly_to_bytes() {
-        // GIVEN: un struct HeaderMessage de un mensaje verack
+    fn header_message_of_verack_message_marshalling_correctly_to_bytes() {
+        // GIVEN: a HeaderMessage struct of a verack message
         let verack_header_message = HeaderMessage {
             start_string: [11, 17, 9, 7],
             command_name: "verack".to_string(),
             payload_size: 0,
             checksum: [93, 246, 224, 226],
         };
-        // WHEN: se ejecuta la funcion to_le_bytes al struct HeaderMessage
+        // WHEN: the to_le_bytes function is executed on the HeaderMessage struct
         let header_message_bytes = verack_header_message.to_le_bytes();
-        // THEN: se convierte a los bytes correctos segun el mensaje verack
-        let expected_bytes_from_verack_header_messege: [u8; 24] = [
+        // THEN: it converts to correct bytes according to verack message
+        let expected_bytes_from_verack_header_message: [u8; 24] = [
             11, 17, 9, 7, 118, 101, 114, 97, 99, 107, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 93, 246, 224,
             226,
         ];
         assert_eq!(
-            expected_bytes_from_verack_header_messege,
+            expected_bytes_from_verack_header_message,
             header_message_bytes
         );
     }
+
     #[test]
-    fn header_message_of_a_version_message_marshalling_correctly_to_bytes() {
-        // GIVEN: un struct HeaderMessage de un mensaje version
-        let vesrion_header_message = HeaderMessage {
+    fn header_message_of_version_message_marshalling_correctly_to_bytes() {
+        // GIVEN: a HeaderMessage struct of a version message
+        let version_header_message = HeaderMessage {
             start_string: [11, 17, 9, 7],
             command_name: "version".to_string(),
             payload_size: 100,
             checksum: [152, 16, 0, 0],
         };
-        // WHEN: se ejecuta la funcion to_le_bytes al struct HeaderMessage
-        let header_message_bytes = vesrion_header_message.to_le_bytes();
-        // THEN: se convierte a los bytes correctos segun el mensaje version
-        let expected_bytes_from_version_header_messege: [u8; 24] = [
+        // WHEN: the to_le_bytes function is executed on the HeaderMessage struct
+        let header_message_bytes = version_header_message.to_le_bytes();
+        // THEN: it converts to correct bytes according to version message
+        let expected_bytes_from_version_header_message: [u8; 24] = [
             11, 17, 9, 7, 118, 101, 114, 115, 105, 111, 110, 0, 0, 0, 0, 0, 100, 0, 0, 0, 152, 16,
             0, 0,
         ];
         assert_eq!(
-            expected_bytes_from_version_header_messege,
+            expected_bytes_from_version_header_message,
             header_message_bytes
         );
     }

@@ -7,22 +7,19 @@ use super::{
 
 const START_STRING: [u8; 4] = [0x0b, 0x11, 0x09, 0x07];
 
-// todo: el write_to es código repetido, es igual que el de getheaders_message.rs. Habría que extraerlos.
-/// Implementa el mensaje getdata necesario para solicitar objetos a otro nodo.
-/// Puede usarse para solicitar transacciones, bloques, etc.
-/// El payload es similar al del mensaje Inv.
 #[derive(Debug)]
-
+/// Implemnts the getdata message needed to request objects from another node.
+/// It can be used to request transactions, blocks, etc.
+/// The payload is similar to the Inv message.
 pub struct GetDataMessage {
     pub header: HeaderMessage,
     pub payload: GetDataPayload,
 }
 impl GetDataMessage {
-    /// Crea el mensaje getdata a partir de los inventories,
-    /// los cuales son los hashes de algún objeto, tal como tx o block
-    ///
-    /// # EJEMPLO de uso:
-    /// ```no_test
+    /// Creates a new getdata message from the inventories,
+    /// which are the hashes of some object, such as tx or block
+    /// # EXAMPLE of use:
+    ///```no_test
     ///     let hash:[u8;32] = [
     ///         0x56, 0x48, 0x22, 0x54,
     ///         0x8a, 0x41, 0x0e, 0x1d,
@@ -39,14 +36,13 @@ impl GetDataMessage {
     ///     let data_message = GetDataMessage::new(inventories);
     ///     data_message.write_to(&mut stream);
     /// ```
-    ///
     pub fn new(inventories: Vec<Inventory>) -> GetDataMessage {
         let payload = GetDataPayload::get_payload(inventories);
         let header = get_data_header_message(&payload);
         GetDataMessage { header, payload }
     }
 
-    /// Serializa el mensaje get_data y devuelve el array de bytes para ser escrito en la red
+    /// Marshalls the get_data message and returns the array of bytes to be written on the network.
     pub fn marshalling(&self) -> Vec<u8> {
         let header = self.header.to_le_bytes();
         let payload = self.payload.to_le_bytes();
@@ -55,9 +51,9 @@ impl GetDataMessage {
         get_data_bytes.extend(payload);
         get_data_bytes
     }
-    /// Dado un struct GetHeadersMessage y un stream que implemente el trait Write en donde se pueda escribir,
-    /// escribe el mensaje serializado a bytes en el stream y devuelve un Ok() si lo pudo escribir correctamente,
-    /// y un error si no se escribio correctamente en el stream
+    /// Given a GetHeadersMessage struct and a stream that implements the Write trait where it can be written,
+    /// writes the serialized message to bytes in the stream and returns an Ok () if it could be written correctly,
+    /// and an error if it was not written correctly in the stream.
     pub fn write_to(&self, stream: &mut dyn Write) -> std::io::Result<()> {
         let message = self.marshalling();
         stream.write_all(&message)?;
@@ -66,7 +62,7 @@ impl GetDataMessage {
     }
 }
 
-/// Devuelve el Header Message del mensaje getdata.
+/// Returns the Header Message of the getdata message.
 fn get_data_header_message(payload: &GetDataPayload) -> HeaderMessage {
     let payload_bytes = payload.to_le_bytes();
     let binding = sha256d::Hash::hash(payload_bytes);
@@ -83,13 +79,14 @@ mod tests {
     use super::*;
 
     #[test]
-    fn get_data_message_con_un_inventory_se_crea_con_el_command_name_correcto() {
-        // GIVEN : un inventory con un solo hash nulo
+    fn get_data_message_with_one_inventory_is_created_with_correct_command_name() {
+        // GIVEN: an inventory with a single null hash
         let mut inventories = Vec::new();
         inventories.push(Inventory::new_block([0; 32]));
-        // WHEN: se llama al método get_payload
+        // WHEN: the get_payload method is called
         let message = GetDataMessage::new(inventories);
-        // THEN: el header del mensaje se creó con el command_name correcto.
+        // THEN: the message header is created with the correct command_name.
         assert!(message.header.command_name.contains("getdata"));
     }
 }
+

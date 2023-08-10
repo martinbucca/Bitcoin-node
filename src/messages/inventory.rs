@@ -2,17 +2,17 @@ use crate::compact_size_uint::CompactSizeUint;
 
 use super::message_header::HeaderMessage;
 
-/// Representa un inventorý del protocolo bitcoin.
-/// el type_identifier indica a qué corresponde el hash:
-/// bloque, transaccion, etc.
 #[derive(Debug, Clone)]
+/// Represents an inventory of the bitcoin protocol.
+/// the type_identifier indicates what the hash corresponds to:
+/// block, transaction, etc.
 pub struct Inventory {
     pub type_identifier: u32,
     pub hash: [u8; 32],
 }
 
 impl Inventory {
-    /// Crea un inventory con el hash de un bloque.
+    /// Creates an inventory with the hash of a block.
     pub fn new_block(hash: [u8; 32]) -> Inventory {
         Inventory {
             type_identifier: 2, // 2: Block
@@ -20,7 +20,7 @@ impl Inventory {
         }
     }
 
-    /// Crea un inventory con el hash de una transacción.
+    /// Creates an inventory with the hash of a transaction.
     pub fn new_tx(hash: [u8; 32]) -> Inventory {
         Inventory {
             type_identifier: 1, // 1: Transaction
@@ -28,8 +28,8 @@ impl Inventory {
         }
     }
 
-    /// Convierte el Inventory a little endian bytes, tal como requiere el protocolo bitcoin
-    /// para enviarlo por la red.
+    /// Converts the Inventory to little endian bytes, as required by the bitcoin protocol
+    /// to send it over the network.
     pub fn to_le_bytes(&self) -> Vec<u8> {
         let mut inventory_bytes: Vec<u8> = Vec::new();
         inventory_bytes.extend_from_slice(&self.type_identifier.to_le_bytes());
@@ -37,7 +37,7 @@ impl Inventory {
         inventory_bytes
     }
 
-    /// Recibe una cadena de bytes, la deserializa y devuelve el Inventory
+    /// Receives a byte string, deserializes it and returns the Inventory.
     pub fn from_le_bytes(inventory_bytes: &[u8]) -> Inventory {
         let mut type_identifier_bytes = [0; 4];
         type_identifier_bytes.copy_from_slice(&inventory_bytes[0..4]);
@@ -49,14 +49,14 @@ impl Inventory {
         }
     }
 
-    /// Devuelve el hash contenido en el inventory
+    /// Returns the hash contained in the inventory.
     pub fn hash(&self) -> [u8; 32] {
         self.hash
     }
 }
 
-/// Recibe un vector de Inventory y serializa el mensaje inv con ese vector. Devuelve un vector
-/// de u8 que representan los bytes serializados
+/// Receives a vector of Inventory and serializes the inv message with that vector. Returns a vector
+/// of u8 representing the serialized bytes.
 pub fn inv_mershalling(inventories: Vec<Inventory>) -> Vec<u8> {
     let count = CompactSizeUint::new(inventories.len() as u128);
     let mut inv_payload = vec![];

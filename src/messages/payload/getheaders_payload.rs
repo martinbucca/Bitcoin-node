@@ -5,7 +5,7 @@ use crate::compact_size_uint::CompactSizeUint;
 const SIZE_OF_HASH: usize = 32;
 
 #[derive(Clone, Debug)]
-/// Representa el payload del mensaje getheaders segun el protocolo de bitcoin
+/// Represents the payload of the getheaders message according to the bitcoin protocol.
 pub struct GetHeadersPayload {
     pub version: u32, // The protocol version
     pub hash_count: CompactSizeUint,
@@ -14,8 +14,8 @@ pub struct GetHeadersPayload {
 }
 
 impl GetHeadersPayload {
-    /// Dado un struct del tipo GetHeadersPayload serializa el payload a bytes segun el protocolo de bitcoin
-    /// y devuelve un vetor de bytes que representan el payload del mensaje getheaders
+    /// Given a GetHeadersPayload struct, serialize the payload to bytes according to the bitcoin protocol
+    /// and returns a vector of bytes representing the payload of the getheaders message.
     pub fn to_le_bytes(&self) -> Vec<u8> {
         let mut getheaders_payload_bytes: Vec<u8> = vec![];
         getheaders_payload_bytes.extend_from_slice(&self.version.to_le_bytes());
@@ -26,7 +26,7 @@ impl GetHeadersPayload {
         getheaders_payload_bytes.extend(self.stop_hash);
         getheaders_payload_bytes
     }
-    /// Dado un vector de bytes, intenta interpretar el mismo como un payload del mensaje getheaders
+    /// Given a vector of bytes, it tries to interpret the same as a payload of the getheaders message.
     pub fn read_from(payload: &[u8]) -> Result<Self, Box<dyn Error>> {
         let mut offset = 0;
         let mut version_bytes: [u8; 4] = [0u8; 4];
@@ -59,7 +59,7 @@ mod tests {
     #[test]
     fn getheaders_payload_returns_the_correct_bytes_when_marshalling_to_bytes_with_one_locator_hash(
     ) {
-        // GIVEN : un payload del mensaje getheaders en forma de struct GetHeadersPayload con un solo locator hash (genesis)
+        // GIVEN: a getheaders message payload in the form of GetHeadersPayload struct with a single locator hash (genesis)
         let getheaders_payload = GetHeadersPayload {
             version: 70015,
             hash_count: CompactSizeUint::new(1u128),
@@ -70,9 +70,9 @@ mod tests {
             ]],
             stop_hash: [0; 32],
         };
-        // WHEN: se llama al metodo para serializar el mensaje "to_le_bytes()"
+        // WHEN: the "to_le_bytes()" method is called to serialize the message
         let bytes = getheaders_payload.to_le_bytes();
-        // THEN: se obtienen los bytes esperado
+        // THEN: the expected bytes are obtained
         let expected_bytes: Vec<u8> = vec![
             127, 17, 1, 0, 1, 0, 0, 0, 0, 9, 51, 234, 1, 173, 14, 233, 132, 32, 151, 121, 186, 174,
             195, 206, 217, 15, 163, 244, 8, 113, 149, 38, 248, 215, 127, 73, 67, 0, 0, 0, 0, 0, 0,
@@ -80,10 +80,11 @@ mod tests {
         ];
         assert_eq!(expected_bytes, bytes);
     }
+
     #[test]
     fn getheaders_payload_returns_the_correct_bytes_when_marshalling_to_bytes_with_more_than_one_locator_hashes(
     ) {
-        // GIVEN : un payload del mensaje getheaders en forma de struct GetHeadersPayload con mas de un locator hash
+        // GIVEN: a getheaders message payload in the form of GetHeadersPayload struct with more than one locator hash
         let getheaders_payload = GetHeadersPayload {
             version: 70015,
             hash_count: CompactSizeUint::new(2u128),
@@ -101,9 +102,9 @@ mod tests {
             ],
             stop_hash: [0; 32],
         };
-        // WHEN: se llama al metodo para serializar el mensaje "to_le_bytes()"
+        // WHEN: the "to_le_bytes()" method is called to serialize the message
         let bytes = getheaders_payload.to_le_bytes();
-        // THEN: se obtienen los bytes esperado
+        // THEN: the expected bytes are obtained
         let expected_bytes: Vec<u8> = vec![
             127, 17, 1, 0, 2, 0, 0, 0, 0, 9, 51, 234, 1, 173, 14, 233, 132, 32, 151, 121, 186, 174,
             195, 206, 217, 15, 163, 244, 8, 113, 149, 38, 248, 215, 127, 73, 67, 0, 0, 0, 0, 9, 51,
@@ -113,10 +114,11 @@ mod tests {
         ];
         assert_eq!(expected_bytes, bytes);
     }
+
     #[test]
     fn getheaders_payload_returns_the_correct_bytes_when_marshalling_to_bytes_with_more_than_one_locator_hashes_and_stop_hash(
     ) {
-        // GIVEN : un payload del mensaje getheaders en forma de struct GetHeadersPayload con mas de un locator hash y un stop hash
+        // GIVEN: a getheaders message payload in the form of GetHeadersPayload struct with more than one locator hash and a stop hash
         let getheaders_payload = GetHeadersPayload {
             version: 70015,
             hash_count: CompactSizeUint::new(2u128),
@@ -138,9 +140,9 @@ mod tests {
                 0xd7, 0x7f, 0x49, 0x45,
             ],
         };
-        // WHEN: se llama al metodo para serializar el mensaje "to_le_bytes()"
+        // WHEN: the "to_le_bytes()" method is called to serialize the message
         let bytes = getheaders_payload.to_le_bytes();
-        // THEN: se obtienen los bytes esperado
+        // THEN: the expected bytes are obtained
         let expected_bytes: Vec<u8> = vec![
             127, 17, 1, 0, 2, 0, 0, 0, 0, 9, 51, 234, 1, 173, 14, 233, 132, 32, 151, 121, 186, 174,
             195, 206, 217, 15, 163, 244, 8, 113, 149, 38, 248, 215, 127, 73, 67, 0, 0, 0, 0, 9, 51,

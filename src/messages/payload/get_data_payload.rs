@@ -4,10 +4,10 @@ use crate::{compact_size_uint::CompactSizeUint, messages::inventory::Inventory};
 
 const INV_SIZE: usize = 36;
 
-/// Representa el mensaje Inv del protocolo bitcoin.
-/// Transmite uno o varios inventories (hashes).
-/// Puede ser la respuesta al mensaje getdata
 #[derive(Debug)]
+/// Represents the getdata message of the bitcoin protocol.
+/// It transmits one or more inventories (hashes).
+/// It can be the response to the getdata message.
 pub struct GetDataPayload {
     pub count: CompactSizeUint,
     pub inventories: Vec<Inventory>,
@@ -15,7 +15,7 @@ pub struct GetDataPayload {
 }
 
 impl GetDataPayload {
-    /// Dado un vector de inventory, devuelve el payload del mensaje getdata
+    /// Given a vector of inventory, it returns the payload of the getdata message.
     pub fn get_payload(inventories: Vec<Inventory>) -> GetDataPayload {
         let count = CompactSizeUint::new(inventories.len() as u128);
         let get_data_payload_bytes = get_data_payload_bytes(&count, &inventories);
@@ -26,18 +26,18 @@ impl GetDataPayload {
         }
     }
 
-    /// Devuelve un vector de bytes que representan el payload del mensaje getdata
+    /// Returns a vector of bytes representing the payload of the getdata message.
     pub fn to_le_bytes(&self) -> &[u8] {
         &self.get_data_payload_bytes
     }
 
-    /// Devuelve el tamaño en bytes del payload
+    /// Returns the size in bytes of the payload.
     pub fn size(&self) -> usize {
         self.to_le_bytes().len()
     }
 }
 
-/// Devuelve el payload serializado a bytes
+/// Returns the payload serialized to bytes.
 fn get_data_payload_bytes(count: &CompactSizeUint, inventories: &Vec<Inventory>) -> Vec<u8> {
     let mut getdata_payload_bytes: Vec<u8> = vec![];
     getdata_payload_bytes.extend_from_slice(&count.marshalling());
@@ -47,7 +47,7 @@ fn get_data_payload_bytes(count: &CompactSizeUint, inventories: &Vec<Inventory>)
     getdata_payload_bytes
 }
 
-/// Recibe el payload del mensaje getdata en una cadena de bytes y devuelve un vector de Inventory
+/// Receives the payload of the getdata message in a byte string and returns a vector of Inventory.
 pub fn unmarshalling(payload: &[u8]) -> Result<Vec<Inventory>, Box<dyn Error>> {
     let mut offset: usize = 0;
     let count = CompactSizeUint::unmarshalling(payload, &mut offset)?;
@@ -57,7 +57,7 @@ pub fn unmarshalling(payload: &[u8]) -> Result<Vec<Inventory>, Box<dyn Error>> {
         inventory_bytes.copy_from_slice(&payload[offset..(offset + INV_SIZE)]);
         let inv = Inventory::from_le_bytes(&inventory_bytes);
         inventories.push(inv);
-        offset += INV_SIZE; // tamaño del inventory
+        offset += INV_SIZE; // szie of inventory
     }
     Ok(inventories)
 }
@@ -66,26 +66,25 @@ mod tests {
     use super::*;
 
     #[test]
-    fn payload_con_un_inventory_se_crea_correctamente() {
-        // GIVEN : un inventory con un solo hash
+    fn payload_with_one_inventory_is_created_correctly() {
+        // GIVEN: an inventory with a single hash
         let mut inventories = Vec::new();
         inventories.push(Inventory::new_block([0; 32]));
-        // WHEN: se llama al método get_payload
+        // WHEN: the get_payload method is called
         let payload = GetDataPayload::get_payload(inventories.clone());
-        // THEN: los atributos del GetDataPayload se crearon correctamente.
+        // THEN: the attributes of GetDataPayload were created correctly.
         assert_eq!(payload.count.decoded_value() as usize, inventories.len());
-        //assert_eq!(payload.inventories, inventories);
     }
+
     #[test]
-    fn payload_con_dos_inventory_se_crea_correctamente() {
-        // GIVEN : un inventory con un solo hash
+    fn payload_with_two_inventory_is_created_correctly() {
+        // GIVEN: an inventory with two hashes
         let mut inventories = Vec::new();
         inventories.push(Inventory::new_block([0; 32]));
         inventories.push(Inventory::new_block([0; 32]));
-        // WHEN: se llama al método get_payload
+        // WHEN: the get_payload method is called
         let payload = GetDataPayload::get_payload(inventories.clone());
-        // THEN: los atributos del GetDataPayload se crearon correctamente.
+        // THEN: the attributes of GetDataPayload were created correctly.
         assert_eq!(payload.count.decoded_value() as usize, inventories.len());
-        // assert_eq!(payload.inventories, inventories);
     }
 }

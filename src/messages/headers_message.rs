@@ -10,8 +10,8 @@ const BLOCK_HEADER_SIZE: usize = 80;
 pub struct HeadersMessage;
 
 impl HeadersMessage {
-    /// Recibe en bytes la respuesta del mensaje headers.
-    /// Devuelve un vector con los block headers contenidos
+    /// Receives the response of the headers message in bytes.
+    /// Returns a vector with the block headers contained.
     pub fn unmarshalling(
         headers_message_bytes: &Vec<u8>,
     ) -> Result<Vec<BlockHeader>, &'static str> {
@@ -23,9 +23,9 @@ impl HeadersMessage {
         let mut i: u64 = 0;
         while i < count.decoded_value() {
             if offset + BLOCK_HEADER_SIZE > headers_size {
-                return Err("Fuera de rango");
+                return Err("Out of bounds");
             }
-            //el 1 es el transaction_count que viene como 0x00;);
+            // The 1 is the transaction_count that comes as 0x00
             i += 1;
             block_header_vec.push(BlockHeader::unmarshalling(
                 headers_message_bytes,
@@ -36,8 +36,8 @@ impl HeadersMessage {
 
         Ok(block_header_vec)
     }
-    /// Dado un stream que implementa el trait Read (desde donde se puede leer) lee el mensaje headers y devuelve
-    /// un vector con los headers en caso de que se haya podido leer correctamente o un Error en caso contrario
+    /// Given a stream that implements the Read trait (from where you can read), reads the headers message and returns
+    /// a vector with the headers if it could be read correctly or an Error otherwise.
     pub fn read_from(
         log_sender: &LogSender,
         stream: &mut TcpStream,
@@ -58,9 +58,8 @@ impl HeadersMessage {
         Ok(headers)
     }
 
-    /// Esta funcion se utiliza para guardar en disco los headers recibidos.
-    /// Lee los headers recibidos del stream y los escribe en el file recibido,
-    /// en el mismo formato en que se leen del stream.
+    /// Stores the headers received in disk. Reads the headers from the stream and writes them in the file
+    /// in the same format as they are read from the stream.
     pub fn read_from_node_and_write_to_file(
         log_sender: &LogSender,
         stream: &mut TcpStream,
@@ -79,16 +78,16 @@ impl HeadersMessage {
         let mut vec: Vec<u8> = vec![];
         vec.extend_from_slice(&buffer_num);
         let headers = Self::unmarshalling(&vec)?;
-        // imprimo en el archivo
+        // write in file
         if let Err(err) = file.write_all(&vec) {
             write_in_log(
                 &log_sender.error_log_sender,
-                format!("Error al escribir en el archivo: {}", err).as_str(),
+                format!("Error trying to write in file: {:?}", err).as_str(),
             );
         }
         Ok(headers)
     }
-    /// Dado un vector de block headers, arma el mensaje headers y lo devuelve en un vector de bytes
+    /// Given a vector of block headers, it builds the headers message and returns it in a vector of bytes.
     pub fn marshalling(headers: Vec<BlockHeader>) -> Vec<u8> {
         let mut headers_message_payload: Vec<u8> = Vec::new();
         let count = CompactSizeUint::new(headers.len() as u128);
@@ -96,7 +95,7 @@ impl HeadersMessage {
         for header in headers {
             let mut header_bytes = vec![];
             header.marshalling(&mut header_bytes);
-            header_bytes.extend_from_slice(&[0x00]); // este es el transaction_count
+            header_bytes.extend_from_slice(&[0x00]); // transaction_count
             headers_message_payload.extend_from_slice(&header_bytes);
         }
         let header = HeaderMessage::new("headers".to_string(), Some(&headers_message_payload));
@@ -115,9 +114,8 @@ mod tests {
     };
 
     #[test]
-    fn test_deserializacion_del_headers_message_vacio_no_da_block_headers(
+    fn test_deserialization_of_empty_headers_message_does_not_yield_block_headers(
     ) -> Result<(), &'static str> {
-        // Caso borde, no se si es posible que devuelva 0 block headers.
         let headers_message: Vec<u8> = vec![0; 1];
         let block_headers = HeadersMessage::unmarshalling(&headers_message)?;
         let expected_value = 0;
@@ -126,7 +124,7 @@ mod tests {
     }
 
     #[test]
-    fn test_deserializacion_del_headers_message_devuelve_1_block_header() -> Result<(), &'static str>
+    fn test_deserialization_of_headers_message_returns_1_block_header() -> Result<(), &'static str>
     {
         let headers_message: Vec<u8> = vec![1; 82];
         let block_headers = HeadersMessage::unmarshalling(&headers_message)?;
@@ -136,7 +134,7 @@ mod tests {
     }
 
     #[test]
-    fn test_deserializacion_del_headers_message_devuelve_2_block_header() -> Result<(), &'static str>
+    fn test_deserialization_of_headers_message_returns_2_block_headers() -> Result<(), &'static str>
     {
         let headers_message: Vec<u8> = vec![2; 163];
         let block_headers = HeadersMessage::unmarshalling(&headers_message)?;
@@ -146,7 +144,7 @@ mod tests {
     }
 
     #[test]
-    fn test_deserializacion_del_headers_message_devuelve_el_block_header_correcto(
+    fn test_deserialization_of_headers_message_returns_correct_block_header(
     ) -> Result<(), &'static str> {
         let mut headers_message: Vec<u8> = vec![0; 82];
         for i in 1..83 {
@@ -179,7 +177,7 @@ mod tests {
     }
 
     #[test]
-    fn test_deserializacion_del_headers_message_con_515_block_headers() -> Result<(), &'static str>
+    fn test_deserialization_of_headers_message_with_515_block_headers() -> Result<(), &'static str>
     {
         let mut headers_message: Vec<u8> = Vec::new();
         let count = CompactSizeUint::new(515);

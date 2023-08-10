@@ -10,17 +10,16 @@ use std::str::Utf8Error;
 use std::sync::Arc;
 
 #[derive(Clone, Debug)]
-/// Representa un mensaje "version" segun el protocolo de bitcoin con un header (24 bytes) y un payload (variable)
+/// Represents a "version" message according to the bitcoin protocol with a header (24 bytes) and a payload (variable)
 pub struct VersionMessage {
     pub header: HeaderMessage,
     pub payload: VersionPayload,
 }
 
 impl VersionMessage {
-    /// Recibe un struct VersionMessage que representa un mensaje "version" segun protocolo de bitcoin
-    /// y un stream que implemente el trait Write (en donde se pueda escribir) y escribe el mensaje serializado
-    /// en bytes en el stream. Devuelve un error en caso de que no se haya podido escribir correctamente o un Ok en caso
-    /// de que se haya escrito correctamente
+    /// Receives a VersionMessage struct that represents a "version" message according to the bitcoin protocol
+    /// and a stream that implements the Write trait (where you can write) and writes the serialized message
+    /// in bytes in the stream. Returns an error if it could not be written correctly or an Ok if it was written correctly.
     pub fn write_to(&self, stream: &mut dyn Write) -> std::io::Result<()> {
         let header = self.header.to_le_bytes();
         let payload = self.payload.to_le_bytes();
@@ -31,10 +30,10 @@ impl VersionMessage {
         stream.flush()?;
         Ok(())
     }
-    /// Recibe un stream que implementa el trait Read (de donde se puede leer) y lee los bytes que corresponden al
-    /// mensaje version segun el protocolo de bitcoin. Devuelve error en caso de que se no se haya podido leer correctamente
-    /// del stream o en caso de que los bytes leidos no puedan ser deserializados a un struct del VersionMessage, en caso
-    /// contrario, devuelve un Ok() con un VersionMessage deserializado de los bytes que leyo del stream.
+    /// Receives a stream that implements the Read trait (where you can read) and reads the bytes that correspond to the
+    /// version message according to the bitcoin protocol. Returns an error in case it cannot be read correctly 
+    /// from the stream or in case the bytes read cannot be deserialized to a VersionMessage struct, otherwise,
+    /// returns an Ok() with a VersionMessage deserialized from the bytes it read from the stream.
     pub fn read_from(
         log_sender: &LogSender,
         stream: &mut TcpStream,
@@ -51,8 +50,8 @@ impl VersionMessage {
     }
 }
 
-/// Genera el VersionMessage con los datos recibidos y lo devuelve
-/// En caso que falle devuelve error
+/// Generates the VersionMessage with the received data and returns it.
+/// In case of failure returns error.
 pub fn get_version_message(
     config: &Arc<Config>,
     socket_addr: SocketAddr,

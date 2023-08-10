@@ -3,7 +3,7 @@ use super::{
     message_header::HeaderMessage,
 };
 
-/// Recibe un vector de Inventory y devuelve el mensaje notfound serializado.
+/// Receives a vector of Inventory and returns the serialized notfound message.
 pub fn get_notfound_message(inventories: Vec<Inventory>) -> Vec<u8> {
     let mut message = vec![];
     let payload = inv_mershalling(inventories);

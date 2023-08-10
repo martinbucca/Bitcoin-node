@@ -4,20 +4,20 @@ use crate::{blocks::block::Block, logwriter::log_writer::LogSender};
 
 use super::message_header::HeaderMessage;
 
-/// Representa el mensaje block que se recibe en respuesta al mensaje getdata
 #[derive(Debug)]
+/// Represents the block message that is received in response to the getdata message.
 pub struct BlockMessage;
 
 impl BlockMessage {
-    /// Recibe en bytes el mensaje "block".
-    /// Devuelve un bloque
+    /// Receives the "block" message in bytes.
+    /// Returns a block
     pub fn unmarshalling(block_message_payload_bytes: &Vec<u8>) -> Result<Block, Box<dyn Error>> {
         let mut offset = 0;
         let block = Block::unmarshalling(block_message_payload_bytes, &mut offset)?;
         Ok(block)
     }
-    /// Dado un stream que implementa el trait Read (desde donde se puede leer) lee el mensaje block y devuelve
-    /// el bloque correspondiente si se pudo leer correctamente o un Error en caso contrario.
+    /// Given a stream that implements the Read trait (from where it can be read) it reads the block message and returns
+    /// the corresponding block if it could be read correctly or an Error otherwise.
     pub fn read_from(
         log_sender: &LogSender,
         stream: &mut TcpStream,
@@ -33,7 +33,7 @@ impl BlockMessage {
     }
 }
 
-// Devuelve el mensaje de tipo block con el bloque pasado por parametro
+/// Returns the block message with the block passed by parameter.
 pub fn get_block_message(block: &Block) -> Vec<u8> {
     let mut block_payload = vec![];
     block.marshalling(&mut block_payload);
