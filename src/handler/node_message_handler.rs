@@ -29,21 +29,20 @@ type NodeSender = Sender<Vec<u8>>;
 type NodeReceiver = Receiver<Vec<u8>>;
 
 #[derive(Debug, Clone)]
-/// Struct para controlar todos los nodos conectados al nuestro. Escucha permanentemente
-/// a estos y decide que hacer con los mensajes que llegan y con los que tiene que escribir
+/// Struct to control all the nodes connected to ours. It listens permanently
+/// to these and decides what to do with the messages that arrive and with those that it has to write.
 pub struct NodeMessageHandler {
     nodes_handle: Arc<Mutex<Vec<JoinHandle<()>>>>,
-    nodes_sender: Vec<NodeSender>,
+    nodes_sender: Vec<NodeSender>, // Stores all the sender to write to the nodes
     transactions_recieved: Arc<RwLock<Vec<[u8; 32]>>>,
     finish: Arc<RwLock<bool>>,
 }
 
 impl NodeMessageHandler {
-    /// Recibe la informacion que tiene el nodo (headers, bloques y nodos conectados)
-    /// y se encarga de crear un thread por cada nodo y lo deja esuchando mensajes
-    /// y handleandolos de forma oportuna. Si ocurre algun error devuelve un Error del enum
-    /// NodeCustomErrors y en caso contrario devuelve el nuevo struct
-    /// NodeMessageHandler con sus respectivos campos
+    /// Receives the information that the node has (headers, blocks and connected nodes)
+    /// and is responsible for creating a thread for each node and leaving it listening to messages
+    /// and handling them in a timely manner. If an error occurs, it returns an Error of the enum
+    /// NodeCustomErrors and otherwise returns the new struct.
     pub fn new(
         log_sender: &LogSender,
         ui_sender: &Option<glib::Sender<UIEvent>>,
@@ -51,20 +50,20 @@ impl NodeMessageHandler {
     ) -> Result<Self, NodeCustomErrors> {
         write_in_log(
             &log_sender.info_log_sender,
-            "Empiezo a escuchar por nuevos bloques y transaccciones",
+            "Starting to listen to nodes...\n",
         );
         let finish = Arc::new(RwLock::new(false));
         let mut nodes_handle: Vec<JoinHandle<()>> = vec![];
-        let cant_nodos = get_amount_of_nodes(node_pointers.connected_nodes.clone())?;
+        let amount_nodes = get_amount_of_nodes(node_pointers.connected_nodes.clone())?;
         let mut nodes_sender = vec![];
-        // Lista de transacciones recibidas para no recibir las mismas de varios nodos
+        // list of received transactions to not receive the same from several nodes
         let transactions_recieved: Arc<RwLock<Vec<[u8; 32]>>> = Arc::new(RwLock::new(Vec::new()));
-        for _ in 0..cant_nodos {
+        for _ in 0..amount_nodes {
             let (tx, rx) = channel();
             nodes_sender.push(tx.clone());
             let node = get_last_node(node_pointers.connected_nodes.clone())?;
             println!(
-                "Nodo -{:?}- Escuchando por nuevos bloques...\n",
+                "Node -{:?}- Listening for new blocks and transactions...\n",
                 node.peer_addr()
             );
             nodes_handle.push(handle_messages_from_node(
@@ -86,32 +85,32 @@ impl NodeMessageHandler {
         })
     }
 
-    /// Recibe un vector de bytes que representa un mensaje serializado y se lo manda a cada canal que esta esperando para escribir en un nodo
-    /// De esta manera se broadcastea el mensaje a todos los nodos conectados.
-    /// Devuelve Ok(()) en caso exitoso o un error ThreadChannelError en caso contrario
+    /// Receives a vector of bytes that represents a serialized message and sends it to each channel that is waiting to write to a node.
+    /// In this way the message is broadcast to all connected nodes.
+    /// Returns Ok(()) in case of success or a ThreadChannelError error otherwise.
     pub fn broadcast_to_nodes(&self, message: Vec<u8>) -> NodeMessageHandlerResult {
         let mut amount_of_failed_nodes = 0;
         for node_sender in &self.nodes_sender {
-            // si alguno de los channels esta cerrado significa que por alguna razon el nodo fallo entonces lo ignoro y pruebo broadcastear
-            // en los siguientes nodos restantes
+            // If any of the channels is closed it means that for some reason the node failed so I ignore it and try to broadcast
+            // in the remaining next nodes
             if write_to_node(node_sender, message.clone()).is_err() {
                 amount_of_failed_nodes += 1;
                 continue;
             }
         }
-        // Si de todos los nodos, no se le pudo enviar a ninguno --> falla el broadcasting
+        // If all the nodes failed, it means that there are no nodes connected to the node --> Broadcasting failed
         if amount_of_failed_nodes == self.nodes_sender.len() {
             return Err(NodeCustomErrors::ThreadChannelError(
-                "Todos los channels cerrados, no se pudo boradcastear tx".to_string(),
+                "All nodes failed".to_string(),
             ));
         }
         Ok(())
     }
 
-    /// Se encarga de actualizar el valor del puntero finish que corta los ciclos de los nodos que estan siendo esuchados.
-    /// Hace el join en cada uno de los threads por cada nodo que estaba siendo escuchado.
-    /// A cada extremo del channel para escribir en los nodos realiza drop() para que se cierre el channel.
-    /// Devuelve Ok(()) en caso de salir todo bien o Error especifico en caso contrario
+    /// Updates the value of the finish pointer that cuts the cycles of the nodes that are being listened to.
+    /// It does the join in each one of the threads for each node that was being listened to.
+    /// For each end of the channel to write to the nodes it performs drop() to close the channel.
+    /// Returns Ok(()) if everything went well or specific Error otherwise.
     pub fn finish(&self) -> NodeMessageHandlerResult {
         *self
             .finish
@@ -135,10 +134,10 @@ impl NodeMessageHandler {
         Ok(())
     }
 
-    /// Se encarga de agregar un nuevo nodo a la lista de nodos que estan siendo escuchados.
-    /// Se le pasa como parametro el canal por el cual se va a comunicar con el nodo
-    /// y el socket del nodo que se quiere agregar
-    /// Devuelve Ok(()) en caso de salir todo bien o Error especifico en caso contrario
+    /// Adds a new node to the list of nodes being listened to.
+    /// The channel through which it will communicate with the node is passed as a parameter
+    /// and the socket of the node you want to add. 
+    /// Returns Ok(()) if everything went well or specific Error otherwise.
     pub fn add_connection(
         &mut self,
         log_sender: &LogSender,
@@ -149,7 +148,7 @@ impl NodeMessageHandler {
         let (tx, rx) = channel();
         self.nodes_sender.push(tx.clone());
         println!(
-            "Nodo -{:?}- Escuchando por nuevos bloques...\n NUEVA CONECCION AGREGADA!!!",
+            "Node -{:?}- Listening for new blocks and transactions...\n NEW CONNECTION ADDED!!!",
             connection.peer_addr()
         );
         self.nodes_handle
@@ -168,10 +167,10 @@ impl NodeMessageHandler {
     }
 }
 
-/// Funcion encargada de crear un thread para un nodo especifico y se encarga de realizar el loop que escucha
-/// por nuevos mensajes del nodo. En caso de ser necesario tambien escribe al nodo mensajes que le llegan por el channel.
-/// El puntero finish define cuando el programa termina y por lo tanto el ciclo de esta funcion. Devuelve el JoinHandle del thread
-/// con lo que devuelve el loop. Ok(()) en caso de salir todo bien o NodeHandlerError en caso de algun error.
+/// Creates a thread for a specific node and is responsible for performing the loop that listens
+/// for new messages from the node. If necessary, it also writes to the node messages that arrive through the channel.
+/// The finish pointer defines when the program ends and therefore the cycle of this function. Returns the JoinHandle of the thread
+/// with what the loop returns. Ok(()) in case everything goes well or NodeHandlerError in case of any error.
 pub fn handle_messages_from_node(
     log_sender: &LogSender,
     ui_sender: &Option<glib::Sender<UIEvent>>,
@@ -184,10 +183,10 @@ pub fn handle_messages_from_node(
     let log_sender = log_sender.clone();
     let ui_sender = ui_sender.clone();
     thread::spawn(move || {
-        // si ocurre algun error se guarda en esta variable
+        // If any error occurs it is saved in this variable
         let mut error: Option<NodeCustomErrors> = None;
         while !is_terminated(finish.clone()) {
-            // Veo si mandaron algo para escribir
+            // If something was sent to write, it is written
             if let Ok(message) = rx.try_recv() {
                 if let Err(err) = write_message_in_node(&mut node, &message) {
                     error = Some(err);
@@ -196,7 +195,7 @@ pub fn handle_messages_from_node(
             }
             let header = match read_header(&mut node, finish.clone()) {
                 Err(NodeCustomErrors::OtherError(_)) => {
-                    //No hay suficientes datos disponibles, continuar
+                    // Not enough data available, continue
                     continue;
                 }
                 Err(err) => {
@@ -263,7 +262,7 @@ pub fn handle_messages_from_node(
                     write_in_log(
                         &log_sender.message_log_sender,
                         format!(
-                            "IGNORADO -- Recibo: {} -- Nodo: {:?}",
+                            "IGNORED -- Message: {} -- Node: {:?}",
                             header.command_name,
                             node.peer_addr()
                         )
@@ -273,28 +272,28 @@ pub fn handle_messages_from_node(
                 }
             };
             if command_name != "inv" {
-                // Se imprimen en el log_message todos los mensajes menos el inv
+                // All messages are printed in the log_message except the inv (too many)
                 write_in_log(
                     &log_sender.message_log_sender,
                     format!(
-                        "Recibo correctamente: {} -- Nodo: {:?}",
+                        "Message received correctly: {} -- Node: {:?}",
                         command_name,
                         node.peer_addr()
                     )
                     .as_str(),
                 );
             }
-            // si ocurrio un error en el handleo salgo del ciclo
+            // If any error occurs in the handling, it exits the cycle 
             if error.is_some() {
                 break;
             }
         }
-        // si ocurrio un error lo documento en el log sender de errores
+        // If an error occurs, it is documented in the error log sender
         if let Some(err) = error {
             write_in_log(
                 &log_sender.error_log_sender,
                 format!(
-                    "NODO {:?} DESCONECTADO!! OCURRIO UN ERROR: {}",
+                    "NODE {:?} DISCONNECTED!! ERROR: {}",
                     node.peer_addr(),
                     err
                 )
@@ -303,9 +302,9 @@ pub fn handle_messages_from_node(
         }
     })
 }
-/// Recibe una referencia mutable al Option que indica si ocurrio un error en el thread en donde se estan escuchando
-/// mensajes y una funcion que handlea un error especifico. Llama a la funcion y si devuelve un error setea la referencia mutable
-/// al error que se devuelve
+/// Receives a mutable reference to the Option that indicates if an error occurred in the thread where messages are being listened to
+/// and a function that handles a specific error. Calls the function and if it returns an error, sets the mutable reference
+/// to the error that is returned.
 fn handle_message<T, E>(error: &mut Option<E>, func: impl FnOnce() -> Result<T, E>) -> Option<T> {
     match func() {
         Ok(result) => Some(result),
@@ -316,9 +315,9 @@ fn handle_message<T, E>(error: &mut Option<E>, func: impl FnOnce() -> Result<T, 
     }
 }
 
-/// Recibe un &str que representa el nombre de un comando de un header con su respectivo nombre
-/// y los \0 hasta completar los 12 bytes. Devuelve un &str con el nombre del mensaje y le quita los
-/// \0 extras
+/// Receives a &str that represents the name of a command of a header with its respective name
+/// and the \0 until completing the 12 bytes. Returns a &str with the name of the message and removes the
+/// extra \0
 fn get_header_command_name_as_str(command: &str) -> &str {
     if let Some(first_null_char) = command.find('\0') {
         &command[0..first_null_char]
@@ -327,8 +326,8 @@ fn get_header_command_name_as_str(command: &str) -> &str {
     }
 }
 
-/// Recibe algo que implemente el trait Write y un vector de bytes que representa un mensaje. Lo escribe y devuevle
-/// Ok(()) en caso de que se escriba exitosamente o un error especifico de escritura en caso contrarios
+/// Receives something that implements the Write trait and a vector of bytes that represents a message. It writes it and returns
+/// Ok(()) in case of successful writing or a specific writing error otherwise.
 pub fn write_message_in_node(node: &mut dyn Write, message: &[u8]) -> NodeMessageHandlerResult {
     node.write_all(message)
         .map_err(|err| NodeCustomErrors::WriteNodeError(err.to_string()))?;
@@ -338,8 +337,7 @@ pub fn write_message_in_node(node: &mut dyn Write, message: &[u8]) -> NodeMessag
     Ok(())
 }
 
-/// Se mantiene leyendo del socket del nodo hasta recibir el header message.
-/// Devuelve el HeaderMessage o un error si falló.
+/// Reads a header message from the node socket and returns it or an error if it failed.
 fn read_header(
     node: &mut dyn Read,
     finish: Option<Arc<RwLock<bool>>>,
@@ -347,25 +345,25 @@ fn read_header(
     let mut buffer_num = [0; 24];
     if !is_terminated(finish.clone()) {
         match node.read_exact(&mut buffer_num) {
-            Ok(_) => {} // Lectura exitosa, continuar
+            Ok(_) => {} // Ok, continue
             Err(ref err) if err.kind() == io::ErrorKind::WouldBlock => {
-                //No hay suficientes datos disponibles, continuar esperando
+                // Not enough data available
                 return Err(NodeCustomErrors::OtherError(err.to_string()));
             }
-            Err(err) => return Err(NodeCustomErrors::ReadNodeError(err.to_string())), // Error inesperado, devolverlo
+            Err(err) => return Err(NodeCustomErrors::ReadNodeError(err.to_string())), // Unexpected error
         }
     }
     if is_terminated(finish) {
-        // devuelvo un header cualquiera para que no falle en la funcion en la que se llama a read_header
-        // y de esta manera cortar bien el ciclo while
+        // Returns any header so that it does not fail in the function in which read_header is called
+        // and in this way break the while cycle well.
         return Ok(HeaderMessage::new("none".to_string(), None));
     }
     HeaderMessage::from_le_bytes(buffer_num)
         .map_err(|err| NodeCustomErrors::UnmarshallingError(err.to_string()))
 }
 
-/// Se mantiene leyendo del socket del nodo hasta recibir el payload esperado.
-/// Devuelve el la cadena de bytes del payload o un error si falló.
+/// Reads from the node socket until receiving the expected payload.
+/// Returns the payload byte string or an error if it failed.
 fn read_payload(
     node: &mut dyn Read,
     size: usize,
@@ -374,16 +372,16 @@ fn read_payload(
     let mut payload_buffer_num: Vec<u8> = vec![0; size];
     while !is_terminated(finish.clone()) {
         match node.read_exact(&mut payload_buffer_num) {
-            Ok(_) => break, // Lectura exitosa, salimos del bucle
-            Err(ref err) if err.kind() == io::ErrorKind::WouldBlock => continue, // No hay suficientes datos disponibles, continuar esperando
-            Err(err) => return Err(NodeCustomErrors::ReadNodeError(err.to_string())), // Error inesperado, devolverlo
+            Ok(_) => break, // Ok, continue
+            Err(ref err) if err.kind() == io::ErrorKind::WouldBlock => continue, // Not enough data available, continue
+            Err(err) => return Err(NodeCustomErrors::ReadNodeError(err.to_string())), // Unexpected error, return
         }
     }
     Ok(payload_buffer_num)
 }
 
-/// Recibe un Arc apuntando a un RwLock de un vector de TcpStreams y devuelve el ultimo nodo TcpStream del vector si es que
-/// hay, si no devuelve un error del tipo BroadcastingError
+/// Receives an Arc pointing to a RwLock of a vector of TcpStreams and returns the last TcpStream node in the vector if there is
+/// is, if not returns an error of the type CanNotRead.
 fn get_last_node(nodes: Arc<RwLock<Vec<TcpStream>>>) -> Result<TcpStream, NodeCustomErrors> {
     let node = nodes
         .try_write()
@@ -394,7 +392,7 @@ fn get_last_node(nodes: Arc<RwLock<Vec<TcpStream>>>) -> Result<TcpStream, NodeCu
     Ok(node)
 }
 
-/// Recibe un Arc apuntando a un vector de TcpStream y devuelve el largo del vector
+/// Receives an Arc pointing to a vector of TcpStream and returns the length of the vector.
 fn get_amount_of_nodes(nodes: Arc<RwLock<Vec<TcpStream>>>) -> Result<usize, NodeCustomErrors> {
     let amount_of_nodes = nodes
         .read()

@@ -44,8 +44,8 @@ const GENESIS_BLOCK_HASH: [u8; 32] = [
 ***************************************************************************
 */
 
-/// Deserializa el payload del mensaje headers y en caso de ser validos se fijan si no estan incluidos en la cadena de headers. En caso
-/// de no estarlo, manda por el channel que escribe en el nodo el mensaje getData con el bloque a pedir
+/// Unmarshalls the payload of the headers message and if they are valid, checks if they are not included in the headers chain. If they are not,
+/// sends the getData message with the block to ask for by the channel that writes in the node.
 pub fn handle_headers_message(
     log_sender: &LogSender,
     tx: NodeSender,
@@ -59,10 +59,10 @@ pub fn handle_headers_message(
         if !header.validate() {
             write_in_log(
                 &log_sender.error_log_sender,
-                "Error en validacion de la proof of work de nuevo header",
+                "Error in the validation of the proof of work of the header",
             );
         } else {
-            // se fija que el header que recibio no este ya incluido en la cadena de headers (con verificar los ultimos 10 alcanza)
+            // Check if the header is already included in the headers chain (with the last 10 is enough)
             let header_not_included = header_is_not_included(header, headers.clone())?;
             if header_not_included {
                 let get_data_message =
@@ -81,6 +81,9 @@ pub fn handle_headers_message(
     Ok(())
 }
 
+
+/// Looks in the headers chain for the first header in common with the locator hashes provided in the getheaders message.
+/// Writes the headers message with the headers to send to the node. Ok(()) in case of success or error in case of failure.
 pub fn handle_getheaders_message(
     tx: NodeSender,
     payload: &[u8],
@@ -131,9 +134,9 @@ pub fn handle_getheaders_message(
     Ok(())
 }
 
-/// Recibe un Sender de bytes, el payload del mensaje getdata recibido y un vector de cuentas de la wallet y deserializa el mensaje getdata que llega
-/// y por cada Inventory que pide si esta como pending_transaction en alguna de las cuentas de la wallet se le envia el mensaje tx con la transaccion pedida
-/// por el channel para ser escrita. Devuelve Ok(()) en caso exitoso o error de tipo NodeCustomErrors en caso contrarui
+/// Receives a Sender of bytes, the payload of the getdata message received and a vector of accounts of the wallet and unmarshalls the getdata message that arrives
+/// and for each Inventory that asks if it is as pending_transaction in any of the accounts of the wallet the tx message is sent with the requested transaction
+/// by the channel to be written. Returns Ok(()) in case of success or error of type NodeCustomErrors in case of failure.
 pub fn handle_getdata_message(
     log_sender: &LogSender,
     node_sender: NodeSender,
@@ -141,7 +144,6 @@ pub fn handle_getdata_message(
     blocks: Arc<RwLock<HashMap<[u8; 32], Block>>>,
     accounts: Arc<RwLock<Arc<RwLock<Vec<Account>>>>>,
 ) -> Result<(), NodeCustomErrors> {
-    // idea: mover a GetDataPayload, que devuelva una lista de inventories
     let mut message_to_send: Vec<u8> = Vec::new();
     let inventories = unmarshalling(payload)
         .map_err(|err| NodeCustomErrors::UnmarshallingError(err.to_string()))?;
@@ -161,7 +163,7 @@ pub fn handle_getdata_message(
         }
     }
     if !notfound_inventories.is_empty() {
-        // Hay un bloque o mas que no fueron encontrados en la blockchain
+        // There is a block or more that were not found in the blockchain
         let notfound_message = get_notfound_message(notfound_inventories);
         message_to_send.extend_from_slice(&notfound_message);
     }
@@ -169,9 +171,9 @@ pub fn handle_getdata_message(
     Ok(())
 }
 
-/// Recibe un inventory, un puntero a la cadena de bloques, un puntero al sender del nodo y un puntero al sender de logs.
-/// Se fija si el bloque del inventory esta en la blockchain y si es asi lo agrega al mensaje a enviar. Si no esta en la blockchain
-/// lo agrega a la lista de inventories notfound. Devuelve Ok(()) en caso de poder agregarlo correctamente o error del tipo NodeHandlerError en caso de no poder.
+/// Receives an inventory, a pointer to the blockchain, a pointer to the node sender and a pointer to the log sender.
+/// It checks if the block of the inventory is in the blockchain and if so it adds it to the message to send. If it is not in the blockchain
+/// it adds it to the notfound inventories list. Returns Ok(()) if it can be added correctly or error of type NodeHandlerError if it cannot.
 fn handle_block_inventory(
     log_sender: &LogSender,
     inventory: &Inventory,
@@ -192,7 +194,7 @@ fn handle_block_inventory(
             write_in_log(
                 &log_sender.error_log_sender,
                 &format!(
-                    "No se encontro el bloque en la blockchain: {}",
+                    "Block not found in the blockchain: {}",
                     crate::account::bytes_to_hex_string(&inventory.hash)
                 ),
             );
@@ -202,7 +204,7 @@ fn handle_block_inventory(
     Ok(())
 }
 
-/// Se fija si la transaccion del inventory esta en alguna de las cuentas de la wallet y si es asi la envia por el channel para que se escriba en el nodo
+/// Checks if the transaction of the inventory is in any of the accounts of the wallet and if so it sends it through the channel to be written in the node.
 fn handle_tx_inventory(
     log_sender: &LogSender,
     inventory: &Inventory,
@@ -225,7 +227,7 @@ fn handle_tx_inventory(
                 write_to_node(node_sender, tx_message)?;
                 write_in_log(
                     &log_sender.info_log_sender,
-                    format!("transaccion {:?} enviada", tx.hex_hash()).as_str(),
+                    format!("Transaction {:?} sent", tx.hex_hash()).as_str(),
                 );
             }
         }
@@ -233,8 +235,8 @@ fn handle_tx_inventory(
     Ok(())
 }
 
-/// Deserializa el payload del mensaje blocks y en caso de que el bloque es valido y todavia no este incluido, agrega el header a la cadena de headers
-/// y el bloque a la cadena de bloques. Se fija si alguna transaccion del bloque involucra a alguna de las cuentas del programa.
+/// Unmarshalls the payload of the blocks message and if the block is valid and is not included yet, adds the header to the headers chain
+/// and the block to the blocks chain. It checks if any transaction of the block involves any of the accounts of the program.
 pub fn handle_block_message(
     log_sender: &LogSender,
     ui_sender: &Option<glib::Sender<UIEvent>>,
@@ -273,14 +275,14 @@ pub fn handle_block_message(
     } else {
         write_in_log(
             &log_sender.error_log_sender,
-            "NUEVO BLOQUE ES INVALIDO, NO LO AGREGO!",
+            "NEW BLOCK MESSAGE ERROR: The block is not valid",
         );
     }
     Ok(())
 }
 
 /// Recieves a NodeSender and the payload of the inv message and creates the inventories to ask for the incoming
-/// txs the node sent via inv. Returns error in case of failure or Ok(())
+/// txs the node sent via inv. Returns error in case of failure or Ok(()) otherwise.
 pub fn handle_inv_message(
     tx: NodeSender,
     payload: &[u8],
@@ -314,8 +316,8 @@ pub fn handle_inv_message(
     Ok(())
 }
 
-/// Recibe un NodeSender y un payload y manda por el channel el pong message correspondiente para que se escriba por el nodo
-/// y quede respondido el ping. Devuelve Ok(()) en caso de que se pueda enviar bien por el channel o Error de channel en caso contrario.
+/// Receives a NodeSender and a payload and sends the corresponding pong message through the channel to be written by the node
+/// and the ping is answered. Returns Ok(()) in case it can be sent well by the channel or Error of channel otherwise.
 pub fn handle_ping_message(tx: NodeSender, payload: &[u8]) -> NodeMessageHandlerResult {
     let header = HeaderMessage {
         start_string: START_STRING,
@@ -332,8 +334,8 @@ pub fn handle_ping_message(tx: NodeSender, payload: &[u8]) -> NodeMessageHandler
     Ok(())
 }
 
-/// Recibe un LogSender, el Payload del mensaje tx y un puntero a un puntero con las cuentas de la wallet. Se fija si la tx involucra una cuenta de nuestra wallet. Devuelve Ok(())
-/// en caso de que se pueda leer bien el payload y recorrer las tx o error en caso contrario
+/// Receives a LogSender, the Payload of the tx message and a pointer to a pointer with the accounts of the wallet. It checks if the tx involves an account of our wallet. Returns Ok(())
+/// in case the payload can be read well and the tx can be traversed or error otherwise.
 pub fn handle_tx_message(
     log_sender: &LogSender,
     ui_sender: &Option<glib::Sender<UIEvent>>,
@@ -352,7 +354,7 @@ pub fn handle_tx_message(
 ***************************************************************************
 */
 
-/// Receives the inventories with the tx and the sender to write in the node. Sends the getdata message to ask for the tx
+/// Receives the inventories with the tx and the sender to write in the node. Sends the getdata message to ask for the tx.
 fn ask_for_incoming_tx(tx: NodeSender, inventories: Vec<Inventory>) -> NodeMessageHandlerResult {
     let get_data_message = GetDataMessage::new(inventories);
     let get_data_message_bytes = get_data_message.marshalling();
@@ -361,8 +363,8 @@ fn ask_for_incoming_tx(tx: NodeSender, inventories: Vec<Inventory>) -> NodeMessa
     Ok(())
 }
 
-/// Recibe un bloque a agregar a la cadena y el puntero Arc apuntando a la cadena de bloques y lo agrega.
-/// Devuelve Ok(()) en caso de poder agregarlo correctamente o error del tipo NodeHandlerError en caso de no poder.
+/// Receives a block to add to the chain and the Arc pointer pointing to the chain of blocks and adds it.
+/// Returns Ok(()) if it can be added correctly or error of type NodeHandlerError if it cannot.
 fn include_new_block(
     log_sender: &LogSender,
     ui_sender: &Option<glib::Sender<UIEvent>>,
@@ -373,19 +375,19 @@ fn include_new_block(
         .write()
         .map_err(|err| NodeCustomErrors::LockError(err.to_string()))?
         .insert(block.hash(), block.clone());
-    println!("\nRECIBO NUEVO BLOQUE: {} \n", block.hex_hash());
+    println!("\nNEW BLOCK RECEIVED: {} \n", block.hex_hash());
     send_event_to_ui(ui_sender, UIEvent::AddBlock(block.clone()));
     write_in_log(
         &log_sender.info_log_sender,
-        format!("NUEVO BLOQUE AGREGADO: -- {} --", block.hex_hash()).as_str(),
+        format!("NEW BLOCK ADDED: -- {} --", block.hex_hash()).as_str(),
     );
 
     Ok(())
 }
 
-/// Recibe un header a agregar a la cadena de headers y el Arc apuntando a la cadena de headers y lo agrega
-/// a la lista de headers y al diccionario de alturas de headers.
-/// Devuelve Ok(()) en caso de poder agregarlo correctamente o error del tipo NodeHandlerError en caso de no poder
+/// Receives a header to add to the headers chain and the Arc pointer pointing to the headers chain and adds it
+/// to the list of headers and to the dictionary of headers heights. 
+/// Returns Ok(()) if it can be added correctly or error of type NodeHandlerError if it cannot.
 fn include_new_header(
     log_sender: &LogSender,
     header: BlockHeader,
@@ -409,7 +411,7 @@ fn include_new_header(
         );
     write_in_log(
         &log_sender.info_log_sender,
-        "Recibo un nuevo header, lo agrego a la cadena de headers!",
+        "New header received. Added to the headers chain",
     );
     Ok(())
 }
@@ -417,6 +419,8 @@ fn include_new_header(
 /// Recibe un header y la lista de headers y se fija en los ulitmos 10 headers de la lista, si es que existen, que el header
 /// no este incluido ya. En caso de estar incluido devuelve false y en caso de nos estar incluido devuelve true. Devuelve error en caso de
 /// que no se pueda leer la lista de headers
+/// Receives a header and the headers list and checks the last 10 headers of the list, if they exist, that the header
+/// is not already included. If it is included it returns false, otherwise true. Returns error if the list of headers cannot be read.
 fn header_is_not_included(
     header: BlockHeader,
     headers: Arc<RwLock<Vec<BlockHeader>>>,
@@ -426,7 +430,7 @@ fn header_is_not_included(
         .map_err(|err| NodeCustomErrors::LockError(err.to_string()))?;
     let start_index = headers_guard.len().saturating_sub(10);
     let last_10_headers = &headers_guard[start_index..];
-    // Verificar si el header está en los ultimos 10 headers
+    // Verify that the header is not included in the last 10 headers
     for included_header in last_10_headers.iter() {
         if *included_header == header {
             return Ok(false);
@@ -435,7 +439,7 @@ fn header_is_not_included(
     Ok(true)
 }
 
-/// Actualiza el utxo_set de cada cuenta
+/// Updates the utxo_set of each account. Returns Ok(()) if it can be updated correctly or error of type NodeHandlerError if it cannot.
 fn update_accounts_utxo_set(
     accounts: Arc<RwLock<Arc<RwLock<Vec<Account>>>>>,
     utxo_set: Arc<RwLock<HashMap<[u8; 32], UtxoTuple>>>,
@@ -455,7 +459,7 @@ fn update_accounts_utxo_set(
     Ok(())
 }
 
-// Devuelve el mensaje tx según la transacción recibida
+/// Returns the tx message according to the received transaction
 fn get_tx_message(tx: &Transaction) -> Vec<u8> {
     let mut tx_payload = vec![];
     tx.marshalling(&mut tx_payload);
@@ -466,7 +470,7 @@ fn get_tx_message(tx: &Transaction) -> Vec<u8> {
     tx_message
 }
 
-/// Manda por el channel el mensaje recibido para que se escriba en el nodo
+/// Sends the received message through the channel to be written in the node
 pub fn write_to_node(tx: &NodeSender, message: Vec<u8>) -> NodeMessageHandlerResult {
     tx.send(message)
         .map_err(|err| NodeCustomErrors::ThreadChannelError(err.to_string()))?;
@@ -476,6 +480,9 @@ pub fn write_to_node(tx: &NodeSender, message: Vec<u8>) -> NodeMessageHandlerRes
 /// Recibe el hash de un header a buscar en la cadena de header y los headers
 /// Recorre los headers hasta encontrar el hash buscado y devuelve el indice en el que se enecuntra
 /// Si no fue encontrado se devuelve el idice 0. En caso de un Error se devuelve un error de tipo NodeCustomErrors
+/// Receives the hash of a header to search in the header chain and the NodeDataPointers with the list of headers and
+/// hashmap of heights of headers. Returns the index of the header (same as the height in the hashmap) if it is found or
+/// 0 if it is not found. Returns error of type NodeCustomErrors if it cannot be read.
 fn get_index_of_header(
     header_hash: [u8; 32],
     node_pointers: NodeDataPointers,
