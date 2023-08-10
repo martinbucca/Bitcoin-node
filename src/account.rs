@@ -75,8 +75,8 @@ impl Account {
         let mut utxos_to_spend = Vec::new();
         let mut partial_amount: i64 = 0;
         let mut position: usize = 0;
-        let lenght: usize = self.utxo_set.len();
-        while position < lenght {
+        let length: usize = self.utxo_set.len();
+        while position < length {
             if (partial_amount + self.utxo_set[position].balance()) < value {
                 partial_amount += self.utxo_set[position].balance();
                 utxos_to_spend.push(self.utxo_set[position].clone());

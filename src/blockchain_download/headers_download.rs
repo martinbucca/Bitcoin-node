@@ -121,7 +121,7 @@ fn read_headers_from_disk(
         println!("{:?} headers read", amount);
         send_event_to_ui(
             ui_sender,
-            UIEvent::ActualizeHeadersDownloaded(amount as usize),
+            UIEvent::UpdateHeadersDownloaded(amount as usize),
         );
         i += HEADERS_MESSAGE_SIZE;
     }
@@ -243,7 +243,7 @@ fn download_and_persist_initial_headers_from_node(
         );
         send_event_to_ui(
             ui_sender,
-            UIEvent::ActualizeHeadersDownloaded(amount_of_headers),
+            UIEvent::UpdateHeadersDownloaded(amount_of_headers),
         );
     }
     Ok(())
@@ -376,7 +376,7 @@ fn download_missing_headers_from_node(
         println!("{:?} headers downloaded", amount_of_headers - 1);
         send_event_to_ui(
             ui_sender,
-            UIEvent::ActualizeHeadersDownloaded(amount_of_headers - 1),
+            UIEvent::UpdateHeadersDownloaded(amount_of_headers - 1),
         );
     }
     Ok(())

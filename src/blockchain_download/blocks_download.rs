@@ -378,7 +378,7 @@ pub fn add_blocks_downloaded_to_local_blocks(
         amount_of_headers(&headers)? - config.height_first_block_to_download;
     send_event_to_ui(
         ui_sender,
-        UIEvent::ActualizeBlocksDownloaded(amount_of_blocks, total_blocks_to_download),
+        UIEvent::UpdateBlocksDownloaded(amount_of_blocks, total_blocks_to_download),
     );
     Ok(())
 }

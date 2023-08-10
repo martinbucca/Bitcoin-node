@@ -49,12 +49,12 @@ pub fn get_pubkey_hash_from_address(address: &str) -> Result<[u8; 20], Box<dyn E
     // decoded from &str to bytes, from base58 format to bytes
     validate_address(address)?;
     let address_decoded_bytes = bs58::decode(address).into_vec()?;
-    let lenght_bytes = address_decoded_bytes.len();
+    let length_bytes = address_decoded_bytes.len();
     let mut pubkey_hash: [u8; 20] = [0; 20];
 
     // the pubkey hash is the one that makes up the address,
     // removes the network byte and the checksum from the end
-    pubkey_hash.copy_from_slice(&address_decoded_bytes[1..(lenght_bytes - 4)]);
+    pubkey_hash.copy_from_slice(&address_decoded_bytes[1..(length_bytes - 4)]);
 
     Ok(pubkey_hash)
 }
@@ -80,12 +80,12 @@ pub fn validate_address(address: &str) -> Result<(), Box<dyn Error>> {
     // Checksum validation: avoids typing errors in the address
     // Calculate the checksum (double SHA-256 hash) of the extended hash
     let address_decoded_bytes = bs58::decode(address).into_vec()?;
-    let lenght_bytes = address_decoded_bytes.len();
+    let length_bytes = address_decoded_bytes.len();
     let checksum_hash = Sha256::digest(Sha256::digest(
-        &address_decoded_bytes[0..(lenght_bytes - 4)],
+        &address_decoded_bytes[0..(length_bytes - 4)],
     ));
 
-    let checksum_address = &address_decoded_bytes[(lenght_bytes - 4)..lenght_bytes];
+    let checksum_address = &address_decoded_bytes[(length_bytes - 4)..length_bytes];
     if checksum_address != &checksum_hash[..4] {
         return Err(Box::new(std::io::Error::new(
             io::ErrorKind::Other,

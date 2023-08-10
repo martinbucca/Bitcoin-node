@@ -68,8 +68,8 @@ impl UtxoTuple {
     pub fn utxos_to_spend(&mut self, value: i64, partial_amount: &mut i64) -> UtxoTuple {
         let mut utxos_to_spend = Vec::new();
         let mut position: usize = 0;
-        let lenght: usize = self.utxo_set.len();
-        while position < lenght {
+        let length: usize = self.utxo_set.len();
+        while position < length {
             *partial_amount += self.utxo_set[position].0.value();
             utxos_to_spend.push(self.utxo_set[position].clone());
             if *partial_amount > value {

@@ -48,8 +48,8 @@ fn create_txin(previous_output: Outpoint, height: Option<Vec<u8>>) -> TxIn {
 
 fn create_txins(hashes: Vec<[u8; 32]>, indexs: Vec<u32>, tx_in: &mut Vec<TxIn>) {
     let mut outpoints: Vec<Outpoint> = Vec::new();
-    let lenght: usize = hashes.len();
-    for i in 0..lenght {
+    let length: usize = hashes.len();
+    for i in 0..length {
         outpoints.push(Outpoint::new(hashes[i], indexs[i]));
     }
     for outpoint in outpoints {
