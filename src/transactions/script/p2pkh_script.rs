@@ -7,11 +7,11 @@ const BYTES_TO_PUSH: u8 = 20;
 //
 // scriptPubKey: OP_DUP OP_HASH160 <bytes_to_push> <pubKeyHash> OP_EQUALVERIFY OP_CHECKSIG
 // HEXA:         0x76   0xA9       <bytes_to_push> <pubKeyHash>  0x88            0xAC
-// Largo bytes:  1 + 1 + 1 + 20 + 1 + 1 = 25
+// bytes length:  1 + 1 + 1 + 20 + 1 + 1 = 25
 // Si una Tx es P2PKH el largo de su pk_script debe ser == 25
-// <pubKeyHash>: Son 20 bytes. Es el resultado de aplicar hash160 (sha256 + ripemd160 hash) a la publicKey comprimida SEC
+// <pubKeyHash>: 20 bytes. The result of hash160 (sha256 + ripemd160 hash) to the compressed public key SEC.
 
-/// Genera el pubkey script a partir de la address comprimida.
+/// Generates the pubkey script from the compressed address.
 pub fn generate_pubkey_script(address: &str) -> Result<Vec<u8>, Box<dyn Error>> {
     let pubkey_hash = get_pubkey_hash_from_address(address)?;
     let mut pk_script: Vec<u8> = Vec::new();
@@ -24,42 +24,42 @@ pub fn generate_pubkey_script(address: &str) -> Result<Vec<u8>, Box<dyn Error>> 
     Ok(pk_script)
 }
 
-/// Recibe el p2pkh_script y el sig_script.
-/// Realiza la validación y devuelve true o false
+/// Receives the p2pkh_script and the sig_script.
+/// Validates and returns true or false.
 pub fn validate(p2pkh_script: &[u8], sig_script: &[u8]) -> Result<bool, Box<dyn Error>> {
     // scriptSig:   <length sig>     <sig>   <length pubKey>   <pubKey>
-    // <pubKey> es la publicKey comprimida SEC (33bytes) del receptor de la tx
-    // Largo bytes: 1 + 71 + 1 + 33 = 106
-    // el largo de <sig> depende de la llave DER, puede variar entre 71 o 72
+    // <pubkey> it is the compressed SEC public key (33 bytes) of the receiver of the tx
+    // bytes length: 1 + 71 + 1 + 33 = 106
+    // the <sig> length depends on the DER key, it can vary between 71 or 72
     let length_sig = sig_script[0];
     let mut sig_script_pubkey: [u8; 33] = [0; 33];
     sig_script_pubkey
         .copy_from_slice(&sig_script[length_sig as usize + 2..length_sig as usize + 35]);
 
-    // 1) Chequeo que el primer comando sea OP_DUP (0x76)
+    // 1) Check that the first command is OP_DUP (0x76)
     if p2pkh_script[0..1] != [ScriptOpcodes::OP_DUP] {
         return Ok(false);
     }
 
-    // 2) Chequeo que el siguiente comando sea OP_HASH_160 (0xA9)
+    // 2) Check that the second command is OP_HASH_160 (0xA9)
     if p2pkh_script[1..2] != [ScriptOpcodes::OP_HASH160] {
         return Ok(false);
     }
 
-    // 3) Aplica hash160 sobre el pubkey del sig_script
+    // 3) Apply hash160 on the pubkey of the sig_script
     let ripemd160_hash = address_decoder::hash_160(&sig_script_pubkey);
 
-    // 4) Chequeo que el siguiente comando sea OP_EQUALVERIFY (0x88)
+    // 4) Check that the next command is OP_EQUALVERIFY (0x88)
     if p2pkh_script[23..24] != [ScriptOpcodes::OP_EQUALVERIFY] {
         return Ok(false);
     }
 
-    // 5) Chequeo que los hash coincidan
+    // 5) Check that the hash matches
     if p2pkh_script[3..23] != ripemd160_hash {
         return Ok(false);
     }
 
-    // 6) Chequeo que el siguiente comando sea OP_CHECKSIG (0xAC)
+    // 6) Check that the next command is OP_CHECKSIG (0xAC)
     if p2pkh_script[24..25] != [ScriptOpcodes::OP_CHECKSIG] {
         return Ok(false);
     }
@@ -79,7 +79,7 @@ mod test {
     };
 
     #[test]
-    fn test_pk_script_se_genera_con_el_largo_correcto() -> Result<(), Box<dyn Error>> {
+    fn test_pk_script_is_generated_with_correct_length() -> Result<(), Box<dyn Error>> {
         let address = "mnEvYsxexfDEkCx2YLEfzhjrwKKcyAhMqV";
         let pk_script = generate_pubkey_script(address)?;
 
@@ -88,7 +88,7 @@ mod test {
     }
 
     #[test]
-    fn test_pk_script_se_genera_con_el_contenido_correcto() -> Result<(), Box<dyn Error>> {
+    fn test_pk_script_is_generated_with_correct_content() -> Result<(), Box<dyn Error>> {
         let address = "mnEvYsxexfDEkCx2YLEfzhjrwKKcyAhMqV";
         let pk_script = generate_pubkey_script(address)?;
 
@@ -101,7 +101,7 @@ mod test {
     }
 
     #[test]
-    fn test_p2pkh_script_se_valida_correctamente() -> Result<(), Box<dyn Error>> {
+    fn test_p2pkh_script_is_validated_correctly() -> Result<(), Box<dyn Error>> {
         let hash: [u8; 32] = [123; 32];
 
         let address = "mnEvYsxexfDEkCx2YLEfzhjrwKKcyAhMqV";
@@ -117,3 +117,4 @@ mod test {
         Ok(())
     }
 }
+

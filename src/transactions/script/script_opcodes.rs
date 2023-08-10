@@ -1,3 +1,4 @@
+/// Op codes used in the script of the transactions
 pub struct ScriptOpcodes;
 
 impl ScriptOpcodes {

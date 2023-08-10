@@ -2,8 +2,8 @@ use crate::compact_size_uint::CompactSizeUint;
 
 use super::{outpoint::Outpoint, script::sig_script::SigScript};
 
-/// Representa la estructura TxIn del protocolo bitcoin
 #[derive(Debug, PartialEq, Clone)]
+/// Represents the TxIn of a transaction as the protocol bitcoin indicates.
 pub struct TxIn {
     previous_output: Outpoint,
     script_bytes: CompactSizeUint,
@@ -13,7 +13,7 @@ pub struct TxIn {
 }
 
 impl TxIn {
-    /// Crea el TxIn con los parámetros recibidos.
+    /// Creates the TxIn with the received parameters.
     pub fn new(
         previous_output: Outpoint,
         script_bytes: CompactSizeUint,
@@ -30,8 +30,8 @@ impl TxIn {
         }
     }
 
-    /// Crea el TxIn incompleto.
-    /// Se utiliza al momento de crear una transacción, el campo signature_script está vacío
+    /// Creates the TxIn incomplete.
+    /// It is used when creating a transaction. The signature_script field is empty.
     pub fn incomplete_txin(previous_output: Outpoint) -> TxIn {
         let script_bytes: CompactSizeUint = CompactSizeUint::new(0);
         let height: Option<Vec<u8>> = None;
@@ -45,13 +45,14 @@ impl TxIn {
             sequence,
         )
     }
-    /// Recibe un vector de bytes que contiene un txin y un offset indicando la posicion donde empieza.
-    /// Devuelve el txin completando los campos según los bytes leidos en caso de que todo este bien
-    /// y un string indicando el error cuando algo falla. Actualiza el offset
+    
+    /// Receives a vector of bytes that contains a txin and an offset indicating the position where it begins.
+    /// Returns the txin completing the fields according to the bytes read in case everything is fine
+    /// and a string indicating the error when something fails. Updates the offset.
     pub fn unmarshalling(bytes: &Vec<u8>, offset: &mut usize) -> Result<TxIn, &'static str> {
         if bytes.len() - *offset < 41 {
             return Err(
-                "Los bytes recibidos no corresponden a un TxIn, el largo es menor a 41 bytes",
+                "The bytes received do not correspond to a TxIn, there are not enough bytes",
             );
         }
         let previous_output: Outpoint = Outpoint::unmarshalling(bytes, offset)?;
@@ -61,7 +62,7 @@ impl TxIn {
         if previous_output.is_a_coinbase_outpoint() {
             if script_bytes.decoded_value() > 100 {
                 return Err(
-                    "Los bytes recibidos no corresponden a un coinbase TxIn, el largo del script es mayor a 100 bytes",
+                    "The bytes received do not correspond to a TxIn, the script bytes are invalid",
                 );
             }
             let mut height_bytes: Vec<u8> = Vec::new();
@@ -89,8 +90,8 @@ impl TxIn {
         })
     }
 
-    /// Deserializa los txin recibidos en la cadena de bytes.
-    /// Actualiza el offset y devuelve el vector de TxIn.
+    /// Unmarshalls the txins received in the bytes chain.
+    /// Updates the offset and returns the TxIn vector.
     pub fn unmarshalling_txins(
         bytes: &Vec<u8>,
         amount_txin: u64,
@@ -105,8 +106,8 @@ impl TxIn {
         Ok(tx_in_list)
     }
 
-    /// Serializa el TxIn a bytes según el protocolo bitcoin.
-    /// Los guarda en el vector recibido por parámetro.
+    /// Marshalls the TxIn to bytes according to the bitcoin protocol.
+    /// Saves them in the vector received by parameter.
     pub fn marshalling(&self, bytes: &mut Vec<u8>) {
         self.previous_output.marshalling(bytes);
         let script_bytes: Vec<u8> = self.script_bytes.marshalling();
@@ -121,19 +122,19 @@ impl TxIn {
         bytes.extend_from_slice(&sequence_bytes);
     }
 
-    /// Devuelve true o false dependiendo si la TxIn es de una coinbase transaction.
+    /// Returns true or false depending on whether the TxIn is from a coinbase transaction.
     pub fn is_coinbase(&self) -> bool {
         self.height.is_some()
     }
 
-    /// Devuelve el outpoint previo
+    /// Returns the previous outpoint
     pub fn outpoint(&self) -> Outpoint {
         self.previous_output
     }
 
-    /// Devuelve la altura del bloque en el que se encuentra la transacción.
-    /// Si es una coinbase transaction devuelve la altura del bloque en el que se encuentra.
-    /// Si no es una coinbase transaction devuelve 0.
+    /// Returns the height of the block in which the transaction is located.
+    /// If it is a coinbase transaction it returns the height of the block in which it is located.
+    /// If it is not a coinbase transaction it returns 0.
     pub fn get_height(&self) -> u32 {
         let mut bytes: Vec<u8> = vec![0];
         let height = &self.height;
@@ -148,25 +149,26 @@ impl TxIn {
         aux_bytes.copy_from_slice(&bytes);
         u32::from_be_bytes(aux_bytes)
     }
-    /// Compara el hash recibido con el del output previo de la TxIn
+
+    /// Compares the received hash with the previous output hash of the TxIn
     pub fn is_same_hash(&self, hash: &[u8; 32]) -> bool {
         self.previous_output.same_hash(*hash)
     }
-    /// Setea en el TxIn el signature script recibido en formato bytes
+    /// Sets the signature script received in bytes format in the TxIn
     pub fn set_signature_script(&mut self, bytes: Vec<u8>) {
         self.script_bytes = CompactSizeUint::new(bytes.len() as u128);
         self.signature_script = SigScript::new(bytes);
     }
-    /// Setea en el TxIn el signature script recibido en formato SigScript
+    /// Sets the signature script received in SigScript format in the TxIn
     pub fn add(&mut self, signature: SigScript) {
         self.script_bytes = CompactSizeUint::new(signature.get_bytes().len() as u128);
         self.signature_script = signature
     }
-    /// Devuelve el hash del output previo
+    /// Returns the hash of the previous output
     pub fn get_previous_output_hash(&self) -> [u8; 32] {
         self.previous_output.hash()
     }
-    /// Devuelve el indice del output previo
+    /// Returns the index of the previous output
     pub fn get_previous_output_index(&self) -> usize {
         self.previous_output.index()
     }
@@ -180,7 +182,7 @@ mod test {
         transactions::{outpoint::Outpoint, script::sig_script::SigScript},
     };
 
-    fn simular_flujo_de_datos(
+    fn simulate_data_flow(
         tx_id: [u8; 32],
         index: u32,
         compact_size_value: u128,
@@ -206,7 +208,7 @@ mod test {
     }
 
     #[test]
-    fn test_unmarshalling_tx_in_invalido() {
+    fn test_unmarshalling_invalid_tx_in() {
         let bytes: Vec<u8> = vec![0; 3];
         let mut offset: usize = 0;
         let tx_in = TxIn::unmarshalling(&bytes, &mut offset);
@@ -214,7 +216,7 @@ mod test {
     }
 
     #[test]
-    fn test_unmarshalling_de_txin_devuelve_outpoint_esperado() -> Result<(), &'static str> {
+    fn test_unmarshalling_tx_in_returns_expected_outpoint() -> Result<(), &'static str> {
         let mut bytes: Vec<u8> = Vec::new();
         let outpoint: Outpoint = Outpoint::new([1; 32], 0x30201000);
         outpoint.marshalling(&mut bytes);
@@ -229,8 +231,9 @@ mod test {
         assert_eq!(expected_txin.previous_output, outpoint);
         Ok(())
     }
+
     #[test]
-    fn test_unmarshalling_de_txin_devuelve_script_bytes_esperado() -> Result<(), &'static str> {
+    fn test_unmarshalling_tx_in_returns_expected_script_bytes() -> Result<(), &'static str> {
         let mut bytes: Vec<u8> = Vec::new();
         let outpoint: Outpoint = Outpoint::new([1; 32], 0x30201000);
         outpoint.marshalling(&mut bytes);
@@ -247,7 +250,7 @@ mod test {
     }
 
     #[test]
-    fn test_unmarshalling_de_txin_devuelve_signature_script_esperado() -> Result<(), &'static str> {
+    fn test_unmarshalling_tx_in_returns_expected_signature_script() -> Result<(), &'static str> {
         let mut bytes: Vec<u8> = Vec::new();
         let outpoint: Outpoint = Outpoint::new([1; 32], 0x30201000);
         outpoint.marshalling(&mut bytes);
@@ -268,7 +271,7 @@ mod test {
     }
 
     #[test]
-    fn test_unmarshalling_de_txin_devuelve_sequence_esperado() -> Result<(), &'static str> {
+    fn test_unmarshalling_tx_in_returns_expected_sequence() -> Result<(), &'static str> {
         let mut bytes: Vec<u8> = Vec::new();
         let outpoint: Outpoint = Outpoint::new([1; 32], 0x30201000);
         outpoint.marshalling(&mut bytes);
@@ -285,7 +288,7 @@ mod test {
     }
 
     #[test]
-    fn test_unmarshalling_de_txin_devuelve_offset_esperado() -> Result<(), &'static str> {
+    fn test_unmarshalling_tx_in_returns_expected_offset() -> Result<(), &'static str> {
         let mut bytes: Vec<u8> = Vec::new();
         let outpoint: Outpoint = Outpoint::new([1; 32], 0x30201000);
         outpoint.marshalling(&mut bytes);
@@ -302,7 +305,7 @@ mod test {
     }
 
     #[test]
-    fn test_unmarshalling_de_2_txin_devuelve_offset_esperado() -> Result<(), &'static str> {
+    fn test_unmarshalling_2_tx_in_returns_expected_offset() -> Result<(), &'static str> {
         let mut bytes: Vec<u8> = Vec::new();
         let outpoint_1: Outpoint = Outpoint::new([1; 32], 0x30201000);
         outpoint_1.marshalling(&mut bytes);
@@ -327,11 +330,10 @@ mod test {
     }
 
     #[test]
-    fn test_marshalling_de_txin_serializa_correctamente_el_campo_previus_outpoint(
-    ) -> Result<(), &'static str> {
+    fn test_marshalling_tx_in_serializes_previous_outpoint_correctly() -> Result<(), &'static str> {
         let tx_id: [u8; 32] = [1; 32];
         let index: u32 = 0x30201000;
-        let bytes_txin: Vec<u8> = simular_flujo_de_datos(tx_id, index, 2, None, 0xffffffff);
+        let bytes_txin: Vec<u8> = simulate_data_flow(tx_id, index, 2, None, 0xffffffff);
         let mut offset: usize = 0;
         let txin_unmarshaled: TxIn = TxIn::unmarshalling(&bytes_txin, &mut offset)?;
         let expected_previous_output: Outpoint = Outpoint::new(tx_id, index);
@@ -340,11 +342,10 @@ mod test {
     }
 
     #[test]
-    fn test_marshalling_de_txin_serializa_correctamente_el_campo_compact_size_uint(
-    ) -> Result<(), &'static str> {
+    fn test_marshalling_tx_in_serializes_script_bytes_correctly() -> Result<(), &'static str> {
         let tx_id: [u8; 32] = [1; 32];
         let index: u32 = 0x30201000;
-        let bytes_txin: Vec<u8> = simular_flujo_de_datos(tx_id, index, 2, None, 0xffffffff);
+        let bytes_txin: Vec<u8> = simulate_data_flow(tx_id, index, 2, None, 0xffffffff);
         let mut offset: usize = 0;
         let txin_unmarshaled: TxIn = TxIn::unmarshalling(&bytes_txin, &mut offset)?;
         let expected_script_bytes: CompactSizeUint = CompactSizeUint::new(2);
@@ -353,11 +354,10 @@ mod test {
     }
 
     #[test]
-    fn test_marshalling_de_txin_serializa_correctamente_el_campo_signature_script(
-    ) -> Result<(), &'static str> {
+    fn test_marshalling_tx_in_serializes_signature_script_correctly() -> Result<(), &'static str> {
         let tx_id: [u8; 32] = [1; 32];
         let index: u32 = 0x30201000;
-        let bytes_txin: Vec<u8> = simular_flujo_de_datos(tx_id, index, 2, None, 0xffffffff);
+        let bytes_txin: Vec<u8> = simulate_data_flow(tx_id, index, 2, None, 0xffffffff);
         let mut offset: usize = 0;
         let txin_unmarshaled: TxIn = TxIn::unmarshalling(&bytes_txin, &mut offset)?;
         let expected_signature_script: Vec<u8> = vec![1, 1];
@@ -369,12 +369,11 @@ mod test {
     }
 
     #[test]
-    fn test_marshalling_de_txin_serializa_correctamente_el_campo_sequence(
-    ) -> Result<(), &'static str> {
+    fn test_marshalling_tx_in_serializes_sequence_correctly() -> Result<(), &'static str> {
         let tx_id: [u8; 32] = [1; 32];
         let index: u32 = 0x30201000;
         let sequence: u32 = 0x302010;
-        let bytes_txin: Vec<u8> = simular_flujo_de_datos(tx_id, index, 2, None, sequence);
+        let bytes_txin: Vec<u8> = simulate_data_flow(tx_id, index, 2, None, sequence);
         let mut offset: usize = 0;
         let txin_unmarshaled: TxIn = TxIn::unmarshalling(&bytes_txin, &mut offset)?;
         assert_eq!(txin_unmarshaled.sequence, sequence);

@@ -26,8 +26,8 @@ use super::{
 const SIG_HASH_ALL: u32 = 0x00000001;
 const TRANSACTION_VERSION: i32 = 0x00000002;
 
-/// Representa una transacción del protocolo bitcoin
 #[derive(Debug, PartialEq, Clone)]
+/// Represents a bitcoin transaction
 pub struct Transaction {
     pub version: i32,
     pub txin_count: CompactSizeUint,
@@ -38,7 +38,7 @@ pub struct Transaction {
 }
 
 impl Transaction {
-    /// Crea la transacción con los parámetros recibidos.
+    /// Creates the transaction with the received parameters.
     pub fn new(
         version: i32,
         txin_count: CompactSizeUint,
@@ -57,13 +57,13 @@ impl Transaction {
         }
     }
 
-    /// Deserializa la transacción a partir de una cadena de bytes.
-    /// Devuelve la transacción o un error en caso de que la cadena no cumpla con el formato
+    /// Unmarshalls the transaction from a byte array.
+    /// Returns the transaction or an error if the byte array doesn't comply with the format.
     pub fn unmarshalling(bytes: &Vec<u8>, offset: &mut usize) -> Result<Transaction, &'static str> {
         // en teoria se lee el coinbase transaccion primero
         if bytes.len() < 10 {
             return Err(
-                "Los bytes recibidos no corresponden a un Transaction, el largo es menor a 10 bytes",
+                "The byte array is too short to be a transaction. It must be at least 10 bytes.",
             );
         }
         let mut version_bytes: [u8; 4] = [0; 4];
@@ -72,13 +72,13 @@ impl Transaction {
         let version = i32::from_le_bytes(version_bytes);
         let txin_count: CompactSizeUint = CompactSizeUint::unmarshalling(bytes, &mut *offset)?;
         let amount_txin: u64 = txin_count.decoded_value();
-        let tx_in: Vec<TxIn> = TxIn::unmarshalling_txins(bytes, amount_txin, &mut *offset)?; // aca se actualizaria el *offset tambien
+        let tx_in: Vec<TxIn> = TxIn::unmarshalling_txins(bytes, amount_txin, &mut *offset)?; // update offset
         if tx_in[0].is_coinbase() && txin_count.decoded_value() != 1 {
-            return Err("una coinbase transaction no puede tener mas de un input");
+            return Err("A coinbase transaction must have only one txin.");
         }
         let txout_count: CompactSizeUint = CompactSizeUint::unmarshalling(bytes, &mut *offset)?;
         let amount_txout: u64 = txout_count.decoded_value();
-        let tx_out: Vec<TxOut> = TxOut::unmarshalling_txouts(bytes, amount_txout, &mut *offset)?; // aca se actualizaria el *offset tambien
+        let tx_out: Vec<TxOut> = TxOut::unmarshalling_txouts(bytes, amount_txout, &mut *offset)?; // update offset
         let mut lock_time_bytes: [u8; 4] = [0; 4];
         lock_time_bytes.copy_from_slice(&bytes[*offset..(*offset + 4)]);
         *offset += 4;
@@ -93,8 +93,8 @@ impl Transaction {
         })
     }
 
-    /// Serializa la transacción.
-    /// Guarda los bytes en la referencia del vector recibido.
+    /// Marshalls the transaction.
+    /// Stores the bytes in the reference of the received vector.
     pub fn marshalling(&self, bytes: &mut Vec<u8>) {
         let version_bytes: [u8; 4] = self.version.to_le_bytes();
         bytes.extend_from_slice(&version_bytes);
@@ -109,13 +109,13 @@ impl Transaction {
         let locktime_bytes: [u8; 4] = self.lock_time.to_le_bytes();
         bytes.extend_from_slice(&locktime_bytes);
     }
-    ///Devuelve el hash de la transaccion
+    /// Returs the hash of the transaction
     pub fn hash(&self) -> [u8; 32] {
         self.hash_message(false)
     }
-    /// Realiza el hash de la transaccion.
-    /// Si recibe true pushea dentro del vector los bytes correspondientes al SIGHASH_ALL.
-    /// Caso contrario realiza el hash normalmente
+    /// Hashes the transaction.
+    /// If it receives true, it pushes the bytes corresponding to the SIGHASH_ALL inside the vector.
+    /// Otherwise, it hashes normally.
     fn hash_message(&self, is_message: bool) -> [u8; 32] {
         let mut raw_transaction_bytes: Vec<u8> = Vec::new();
         self.marshalling(&mut raw_transaction_bytes);
@@ -131,9 +131,8 @@ impl Transaction {
         *hash_transaction.as_byte_array()
     }
 
-    /// Recibe una referencia a un vector de bytes y la cantidad de transacciones a deserializar.
-    /// Devuelve un vector con las transacciones o error.
-    /// Actualiza el offset
+    /// Receives a reference to a vector of bytes and the amount of transactions to deserialize.
+    /// Returns a vector with the transactions or an error. Updates the offset.
     pub fn unmarshalling_transactions(
         bytes: &Vec<u8>,
         amount_transactions: u64,
@@ -148,22 +147,22 @@ impl Transaction {
         Ok(transactions_list)
     }
 
-    /// Devuelve true o false dependiendo si la transacción es una coinbase
+    /// Returns true or false depending if the transaction is a coinbase
     pub fn is_coinbase_transaction(&self) -> bool {
         self.tx_in[0].is_coinbase()
     }
 
-    /// Devuelve una copia de los tx_out de la transaccion
+    /// Returns a copy of the tx_out of the transaction
     pub fn get_txout(&self) -> Vec<TxOut> {
         self.tx_out.clone()
     }
 
-    /// Revisa los inputs de la transacción y remueve las utxos que fueron gastadas
+    /// Checks the inputs of the transaction and removes the utxos that were spent
     pub fn remove_utxos(
         &self,
         utxo_set: Arc<RwLock<HashMap<[u8; 32], UtxoTuple>>>,
     ) -> Result<(), Box<dyn Error>> {
-        // Si la tx gasta un output existente en nuestro utxo_set, lo removemos
+        // If the tx spends an existing output in our utxo_set, we remove it
         for txin in &self.tx_in {
             let txid = &txin.get_previous_output_hash();
             let output_index = txin.get_previous_output_index();
@@ -184,7 +183,7 @@ impl Transaction {
         Ok(())
     }
 
-    /// Genera el UtxoTuple y lo guarda en el utxo_set
+    /// Generates the UtxoTuple and saves it in the utxo_set
     pub fn load_utxos(
         &self,
         utxo_set: Arc<RwLock<HashMap<[u8; 32], UtxoTuple>>>,
@@ -203,8 +202,8 @@ impl Transaction {
         Ok(())
     }
 
-    /// Devuelve un string que representa el hash de la transaccion en hexadecimal y en el formato
-    /// que se usa en la pagina https://blockstream.info/testnet/ para mostrar transacciones
+    /// Returns a string that represents the hash of the transaction in hexadecimal and in the format
+    /// used in the page https://blockstream.info/testnet/ to show transactions
     pub fn hex_hash(&self) -> String {
         let hash_as_bytes = self.hash();
         let inverted_hash: [u8; 32] = {
@@ -221,8 +220,8 @@ impl Transaction {
         hex_hash
     }
 
-    /// Recibe un puntero a un puntero con las cuentas de la wallet y se fija si alguna tx_out tiene una address
-    /// igual que alguna de la wallet. Devuelve Ok(()) en caso de no ocurrir ningun error o Error especifico en caso contrario
+    /// Receives a pointer to a pointer with the accounts of the wallet and checks if any tx_out has an address
+    /// equal to any of the wallet. Returns Ok(()) if no error occurs or specific Error otherwise.
     pub fn check_if_tx_involves_user_account(
         &self,
         log_sender: &LogSender,
@@ -234,9 +233,9 @@ impl Transaction {
         }
         Ok(())
     }
-    /// Esta funcion genera la transaccion sin firmar , los parametros indican la adrress
-    /// donde se enviara el monto(value), la recompensa por agregar la nueva transaccion
-    /// al bloque(fee) y la direccion para retornar el cambio en caso de que se genere(change_address)
+    /// Generates the unsigned transaction, the parameters indicate the address
+    /// where the amount (value) will be sent, the reward for adding the new transaction
+    /// to the block (fee) and the address to return the change in case it is generated (change_address).
     pub fn generate_unsigned_transaction(
         address_receiver: &str,
         change_adress: &str,
@@ -246,8 +245,8 @@ impl Transaction {
     ) -> Result<Transaction, Box<dyn Error>> {
         let mut tx_ins: Vec<TxIn> = Vec::new();
         let mut input_balance: i64 = 0;
-        // en esta parte se generan los tx_in con la referencia de los utxos
-        // de donde obtenemos los satoshis para ser gastados ,¡ojo! pueden ser mas de uno.
+        // Generation of tx_in with the reference of the utxos. The satoshis to be spent are obtained from here.
+        // ¡Attention! There can be more than one.
         for utxo in utxos_to_spend {
             let tx_id: [u8; 32] = utxo.hash();
             input_balance += utxo.balance();
@@ -258,20 +257,20 @@ impl Transaction {
                 tx_ins.push(tx_in);
             }
         }
-        // esta variable contiene el monto correspondiente al sobrante de la tx
+        // Contains the amount corresponding to the change of the tx
         let change_amount: i64 = input_balance - (value + fee);
-        // esta variable indica la cantidad de txIn creados en los pasos anteriores
+        // Amount of txIn created in the previous steps
         let txin_count: CompactSizeUint = CompactSizeUint::new(tx_ins.len() as u128);
-        // este vector contiene los outputs de nuestra transaccion
+        // Vec containing the outputs of our transaction
         let mut tx_outs: Vec<TxOut> = Vec::new();
-        // creacion del pubkey_script donde transferimos los satoshis
+        // Creation of the pubkey_script where we transfer the satoshis
         let target_pk_script: Vec<u8> = generate_pubkey_script(address_receiver)?;
         let target_pk_script_bytes: CompactSizeUint =
             CompactSizeUint::new(target_pk_script.len() as u128);
-        // creacion del txOut(utxo) referenciado al address que nos enviaron
+        // Creation of the txOut (utxo) referenced to the address that was sent to us.
         let utxo_to_send: TxOut = TxOut::new(value, target_pk_script_bytes, target_pk_script);
         tx_outs.push(utxo_to_send);
-        // creacion del pubkey_script donde enviaremos el cambio de nuestra tx
+        // Creation of the pubkey_script where we will send the change of our tx.
         let change_pk_script: Vec<u8> = generate_pubkey_script(change_adress)?;
         let change_pk_script_bytes: CompactSizeUint =
             CompactSizeUint::new(change_pk_script.len() as u128);
@@ -292,8 +291,8 @@ impl Transaction {
         Ok(incomplete_transaction)
     }
 
-    /// Firma la transacción.
-    /// Recibe la lista de utxos a gastar y agrega el signature_script a cada TxIn.
+    /// Signs the transaction.
+    /// Receives the list of utxos to spend and adds the signature_script to each TxIn.
     pub fn sign(
         &mut self,
         account: &Account,
@@ -301,7 +300,7 @@ impl Transaction {
     ) -> Result<(), Box<dyn Error>> {
         let mut signatures = Vec::new();
         for index in 0..self.tx_in.len() {
-            // agregar el signature a cada input
+            // add signature to each input
             let z = self.generate_message_to_sign(index, utxos_to_spend);
             signatures.push(SigScript::generate_sig_script(z, account)?);
         }
@@ -311,8 +310,8 @@ impl Transaction {
         Ok(())
     }
 
-    /// Genera la txin con el previous pubkey del tx_in recibido.
-    /// Devuelve el hash
+    /// Generates the txin with the previous pubkey of the received tx_in.
+    /// Returns the hash.
     fn generate_message_to_sign(
         &self,
         tx_in_index: usize,
@@ -335,8 +334,8 @@ impl Transaction {
         tx_copy.hash_message(true)
     }
 
-    /// Valida la transacción.
-    /// Ejecuta el script y devuelve error en caso de que no pase la validación.
+    /// Validates the transaction.
+    /// Executes the script and returns an error if it does not pass the validation.
     pub fn validate(&self, utxos_to_spend: &Vec<UtxoTuple>) -> Result<(), Box<dyn Error>> {
         let mut p2pkh_scripts = Vec::new();
         for utxo in utxos_to_spend {
@@ -350,14 +349,14 @@ impl Transaction {
             if !p2pkh_script::validate(p2pkh_scripts[index], txin.signature_script.get_bytes())? {
                 return Err(Box::new(std::io::Error::new(
                     io::ErrorKind::Other,
-                    "El p2pkh_script no pasó la validación.",
+                    "The p2pkh script is not valid",
                 )));
             }
         }
         Ok(())
     }
 
-    /// Devuelve el monto de la transacción.
+    /// Returns the amount of the transaction.
     pub fn amount(&self) -> i64 {
         let mut amount = 0;
         for txout in &self.tx_out {
@@ -365,13 +364,13 @@ impl Transaction {
         }
         amount
     }
-    /// Devuelve la altura del bloque en el que se encuentra la transacción.
-    /// Válido sólo para las coinbase transactions.
+    /// Returns the height of the block in which the transaction is located.
+    /// Valid only for coinbase transactions.
     pub fn get_height(&self) -> u32 {
         self.tx_in[0].get_height()
     }
 
-    /// Devuelve el monto enviado a direcciones distintas de la recibida por parámetro
+    /// Returns the amount sent to addresses other than the one received by parameter.
     pub fn amount_spent_by_account(&self, address: &String) -> Result<i64, Box<dyn Error>> {
         let mut amount = 0;
         for txout in &self.tx_out {
@@ -394,10 +393,10 @@ mod test {
     };
     use bitcoin_hashes::{sha256d, Hash};
 
-    /// Funcion auxiliar que crea los txin
-    fn crear_txins(cantidad: u128) -> Vec<TxIn> {
+    /// Auxiliar function that creates the txin
+    fn create_txin(amount: u128) -> Vec<TxIn> {
         let mut tx_in: Vec<TxIn> = Vec::new();
-        for _i in 0..cantidad {
+        for _i in 0..amount {
             let tx_id: [u8; 32] = [1; 32];
             let index_outpoint: u32 = 0x30000000;
             let outpoint: Outpoint = Outpoint::new(tx_id, index_outpoint);
@@ -416,10 +415,10 @@ mod test {
         tx_in
     }
 
-    /// Funcion auxiliar que crea los txout
-    fn crear_txouts(cantidad: u128) -> Vec<TxOut> {
+    /// Auxiliar function that creates the txout
+    fn create_txout(amount: u128) -> Vec<TxOut> {
         let mut tx_out: Vec<TxOut> = Vec::new();
-        for _i in 0..cantidad {
+        for _i in 0..amount {
             let value: i64 = 43;
             let pk_script_bytes: CompactSizeUint = CompactSizeUint::new(0);
             let pk_script: Vec<u8> = Vec::new();
@@ -428,25 +427,25 @@ mod test {
         tx_out
     }
 
-    /// Funcion auxiliar que crea la cadena de bytes para testear la deserializacion
-    fn generar_flujo_de_datos(
+    /// Auxiliar function that creates the byte array to test the deserialization
+    fn generate_data_stream(
         version: i32,
         tx_in_count: u128,
         tx_out_count: u128,
         lock_time: u32,
     ) -> Vec<u8> {
-        //contenedor de bytes
+        // bytes container
         let mut bytes: Vec<u8> = Vec::new();
         // version settings
         let version: i32 = version;
         // tx_in_count settings
         let txin_count = CompactSizeUint::new(tx_in_count);
         // tx_in settings
-        let tx_in: Vec<TxIn> = crear_txins(tx_in_count);
+        let tx_in: Vec<TxIn> = create_txin(tx_in_count);
         // tx_out_count settings
         let txout_count = CompactSizeUint::new(tx_out_count);
         // tx_out settings
-        let tx_out: Vec<TxOut> = crear_txouts(tx_out_count);
+        let tx_out: Vec<TxOut> = create_txout(tx_out_count);
         //lock_time settings
         let lock_time: u32 = lock_time;
         let transaction: Transaction =
@@ -456,7 +455,7 @@ mod test {
     }
 
     #[test]
-    fn test_la_transaccion_se_hashea_correctamente() {
+    fn test_transaction_hashes_correctly() {
         let previous_output: Outpoint = Outpoint::new([1; 32], 0x11111111);
         let script_bytes: CompactSizeUint = CompactSizeUint::new(0);
         let mut tx_in: Vec<TxIn> = Vec::new();
@@ -487,26 +486,25 @@ mod test {
     }
 
     #[test]
-    fn test_unmarshalling_transaction_invalida() {
+    fn test_unmarshalling_invalid_transaction() {
         let bytes: Vec<u8> = vec![0; 5];
-
         let mut offset: usize = 0;
         let transaction = Transaction::unmarshalling(&bytes, &mut offset);
         assert!(transaction.is_err());
     }
 
     #[test]
-    fn test_unmarshalling_transaction_con_coinbase_y_mas_inputs_devuelve_error() {
-        //contenedor de bytes
+    fn test_unmarshalling_transaction_with_coinbase_and_more_inputs_returns_error() {
+        // Byte container
         let mut bytes: Vec<u8> = Vec::new();
-        // version settings
+        // Version settings
         let version: i32 = 23;
         let version_bytes = version.to_le_bytes();
         bytes.extend_from_slice(&version_bytes[0..4]);
-        // tx_in_count settings
+        // Tx_in_count settings
         let txin_count = CompactSizeUint::new(2);
         bytes.extend_from_slice(&txin_count.marshalling()[0..1]);
-        // tx_in settings
+        // Tx_in settings
         let tx_id: [u8; 32] = [0; 32];
         let index_outpoint: u32 = 0xffffffff;
         let outpoint: Outpoint = Outpoint::new(tx_id, index_outpoint);
@@ -524,17 +522,17 @@ mod test {
             sequence,
         ));
         tx_in[0 as usize].marshalling(&mut bytes);
-        let cantidad_txin: u128 = txin_count.decoded_value() as u128;
-        let tx_input: Vec<TxIn> = crear_txins(cantidad_txin);
+        let txin_amount: u128 = txin_count.decoded_value() as u128;
+        let tx_input: Vec<TxIn> = create_txin(txin_amount);
         tx_input[0 as usize].marshalling(&mut bytes);
-        // tx_out_count settings
+        // Tx_out_count settings
         let txout_count = CompactSizeUint::new(1);
         bytes.extend_from_slice(txout_count.value());
-        // tx_out settings
-        let cantidad_txout: u128 = txout_count.decoded_value() as u128;
-        let tx_out: Vec<TxOut> = crear_txouts(cantidad_txout);
+        // Tx_out settings
+        let txout_amount: u128 = txout_count.decoded_value() as u128;
+        let tx_out: Vec<TxOut> = create_txout(txout_amount);
         tx_out[0 as usize].marshalling(&mut bytes);
-        //lock_time settings
+        // Lock_time settings
         let lock_time: [u8; 4] = [0; 4];
         bytes.extend_from_slice(&lock_time);
 
@@ -544,13 +542,14 @@ mod test {
         assert!(transaction.is_err());
     }
 
+
     #[test]
-    fn test_unmarshalling_transaction_devuelve_version_esperado() -> Result<(), &'static str> {
+    fn test_unmarshalling_transaction_returns_expected_version() -> Result<(), &'static str> {
         let tx_in_count: u128 = 4;
         let tx_out_count: u128 = 3;
         let version: i32 = -34;
         let lock_time: u32 = 3;
-        let bytes = generar_flujo_de_datos(version, tx_in_count, tx_out_count, lock_time);
+        let bytes = generate_data_stream(version, tx_in_count, tx_out_count, lock_time);
         let mut offset: usize = 0;
         let transaction: Transaction = Transaction::unmarshalling(&bytes, &mut offset)?;
         assert_eq!(transaction.version, version);
@@ -558,12 +557,12 @@ mod test {
     }
 
     #[test]
-    fn test_unmarshalling_transaction_devuelve_txin_count_esperado() -> Result<(), &'static str> {
+    fn test_unmarshalling_transaction_returns_expected_txin_count() -> Result<(), &'static str> {
         let tx_in_count: u128 = 4;
         let tx_out_count: u128 = 3;
         let version: i32 = -34;
         let lock_time: u32 = 3;
-        let bytes = generar_flujo_de_datos(version, tx_in_count, tx_out_count, lock_time);
+        let bytes = generate_data_stream(version, tx_in_count, tx_out_count, lock_time);
         let mut offset: usize = 0;
         let transaction: Transaction = Transaction::unmarshalling(&bytes, &mut offset)?;
         let tx_count_expected: CompactSizeUint = CompactSizeUint::new(tx_in_count);
@@ -572,26 +571,26 @@ mod test {
     }
 
     #[test]
-    fn test_unmarshalling_transaction_devuelve_txin_esperado() -> Result<(), &'static str> {
+    fn test_unmarshalling_transaction_returns_expected_txin() -> Result<(), &'static str> {
         let tx_in_count: u128 = 1;
         let tx_out_count: u128 = 1;
         let version: i32 = -34;
         let lock_time: u32 = 3;
-        let bytes = generar_flujo_de_datos(version, tx_in_count, tx_out_count, lock_time);
+        let bytes = generate_data_stream(version, tx_in_count, tx_out_count, lock_time);
         let mut offset: usize = 0;
         let transaction: Transaction = Transaction::unmarshalling(&bytes, &mut offset)?;
-        let tx_in: Vec<TxIn> = crear_txins(tx_in_count);
+        let tx_in: Vec<TxIn> = create_txin(tx_in_count);
         assert_eq!(transaction.tx_in, tx_in);
         Ok(())
     }
 
     #[test]
-    fn test_unmarshalling_transaction_devuelve_txout_count_esperado() -> Result<(), &'static str> {
+    fn test_unmarshalling_transaction_returns_expected_txout_count() -> Result<(), &'static str> {
         let tx_in_count: u128 = 4;
         let tx_out_count: u128 = 3;
         let version: i32 = -34;
         let lock_time: u32 = 3;
-        let bytes = generar_flujo_de_datos(version, tx_in_count, tx_out_count, lock_time);
+        let bytes = generate_data_stream(version, tx_in_count, tx_out_count, lock_time);
         let mut offset: usize = 0;
         let transaction: Transaction = Transaction::unmarshalling(&bytes, &mut offset)?;
         let tx_count_expected: CompactSizeUint = CompactSizeUint::new(tx_out_count);
@@ -600,26 +599,26 @@ mod test {
     }
 
     #[test]
-    fn test_unmarshalling_transaction_devuelve_txout_esperado() -> Result<(), &'static str> {
+    fn test_unmarshalling_transaction_returns_expected_txout() -> Result<(), &'static str> {
         let tx_in_count: u128 = 1;
         let tx_out_count: u128 = 1;
         let version: i32 = -34;
         let lock_time: u32 = 3;
-        let bytes = generar_flujo_de_datos(version, tx_in_count, tx_out_count, lock_time);
+        let bytes = generate_data_stream(version, tx_in_count, tx_out_count, lock_time);
         let mut offset: usize = 0;
         let transaction: Transaction = Transaction::unmarshalling(&bytes, &mut offset)?;
-        let tx_out: Vec<TxOut> = crear_txouts(tx_out_count);
+        let tx_out: Vec<TxOut> = create_txout(tx_out_count);
         assert_eq!(transaction.tx_out[0], tx_out[0]);
         Ok(())
     }
 
     #[test]
-    fn test_unmarshalling_transaction_devuelve_lock_time_esperado() -> Result<(), &'static str> {
+    fn test_unmarshalling_transaction_returns_expected_lock_time() -> Result<(), &'static str> {
         let tx_in_count: u128 = 4;
         let tx_out_count: u128 = 3;
         let version: i32 = -34;
         let lock_time: u32 = 3;
-        let bytes = generar_flujo_de_datos(version, tx_in_count, tx_out_count, lock_time);
+        let bytes = generate_data_stream(version, tx_in_count, tx_out_count, lock_time);
         let mut offset: usize = 0;
         let transaction: Transaction = Transaction::unmarshalling(&bytes, &mut offset)?;
         assert_eq!(transaction.lock_time, lock_time);
@@ -627,12 +626,12 @@ mod test {
     }
 
     #[test]
-    fn test_unmarshalling_transaction_devuelve_tamanio_txin_esperado() -> Result<(), &'static str> {
+    fn test_unmarshalling_transaction_returns_expected_txin_size() -> Result<(), &'static str> {
         let tx_in_count: u128 = 4;
         let tx_out_count: u128 = 3;
         let version: i32 = -34;
         let lock_time: u32 = 3;
-        let bytes = generar_flujo_de_datos(version, tx_in_count, tx_out_count, lock_time);
+        let bytes = generate_data_stream(version, tx_in_count, tx_out_count, lock_time);
         let mut offset: usize = 0;
         let transaction: Transaction = Transaction::unmarshalling(&bytes, &mut offset)?;
         assert_eq!(transaction.tx_in.len(), tx_in_count as usize);
@@ -640,47 +639,46 @@ mod test {
     }
 
     #[test]
-    fn test_unmarshalling_transaction_devuelve_vector_txin_esperado() -> Result<(), &'static str> {
+    fn test_unmarshalling_transaction_returns_expected_txin_vector() -> Result<(), &'static str> {
         let tx_in_count: u128 = 4;
         let tx_out_count: u128 = 3;
         let version: i32 = -34;
         let lock_time: u32 = 3;
-        let bytes = generar_flujo_de_datos(version, tx_in_count, tx_out_count, lock_time);
+        let bytes = generate_data_stream(version, tx_in_count, tx_out_count, lock_time);
         let mut offset: usize = 0;
         let transaction: Transaction = Transaction::unmarshalling(&bytes, &mut offset)?;
-        let tx_in: Vec<TxIn> = crear_txins(tx_in_count);
+        let tx_in: Vec<TxIn> = create_txin(tx_in_count);
         assert_eq!(transaction.tx_in, tx_in);
         Ok(())
     }
 
     #[test]
-    fn test_unmarshalling_transaction_devuelve_vector_txout_esperado() -> Result<(), &'static str> {
+    fn test_unmarshalling_transaction_returns_expected_txout_vector() -> Result<(), &'static str> {
         let tx_in_count: u128 = 4;
         let tx_out_count: u128 = 3;
         let version: i32 = -34;
         let lock_time: u32 = 3;
-        let bytes = generar_flujo_de_datos(version, tx_in_count, tx_out_count, lock_time);
+        let bytes = generate_data_stream(version, tx_in_count, tx_out_count, lock_time);
         let mut offset: usize = 0;
         let transaction: Transaction = Transaction::unmarshalling(&bytes, &mut offset)?;
-        let tx_out: Vec<TxOut> = crear_txouts(tx_out_count);
+        let tx_out: Vec<TxOut> = create_txout(tx_out_count);
         assert_eq!(transaction.tx_out, tx_out);
         Ok(())
     }
 
     #[test]
-    fn test_unmarshalling_de_2_transactions_devuelve_longitud_esperada() -> Result<(), &'static str>
-    {
+    fn test_unmarshalling_two_transactions_returns_expected_length() -> Result<(), &'static str> {
         let tx_in_count: u128 = 1;
         let tx_out_count: u128 = 1;
         let version: i32 = -34;
         let lock_time: u32 = 3;
-        let mut bytes = generar_flujo_de_datos(version, tx_in_count, tx_out_count, lock_time);
-        let bytes2 = generar_flujo_de_datos(version, tx_in_count, tx_out_count, lock_time);
+        let mut bytes = generate_data_stream(version, tx_in_count, tx_out_count, lock_time);
+        let bytes2 = generate_data_stream(version, tx_in_count, tx_out_count, lock_time);
         bytes.extend_from_slice(&bytes2[0..bytes2.len()]);
         let mut offset: usize = 0;
-        let transaction: Vec<Transaction> =
+        let transactions: Vec<Transaction> =
             Transaction::unmarshalling_transactions(&bytes, 2, &mut offset)?;
-        assert_eq!(transaction.len(), 2);
+        assert_eq!(transactions.len(), 2);
         Ok(())
     }
 }
