@@ -1,4 +1,3 @@
-# 23C1-Rusteam-Fiuberico
 <div align="center">
   <p align="center">
     <h1> BITCOIN NODE <h1 />
@@ -6,9 +5,8 @@
   <img src="src/readme_images/icon.gif" alt="Logo" width="80" height="80">
 </div>
 
-## Sobre el proyecto
-El objetivo principal del proyecto fue la creacion de un nodo de bitcoin siguiendo las [guias de desarrollo](https://developer.bitcoin.org/devguide/index.html) y las [guias de especificacion](https://developer.bitcoin.org/reference/index.html). El proyecto se realizo con el lenguaje de programacion [Rust](https://www.rust-lang.org/) y para la interfaz grafica se utilzo [Gtk](https://www.gtk.org/) y el modulo [Gtk-rs](https://gtk-rs.org/).
-
+## About the proyect
+The main objective of the project was the creation of a Bitcoin node following the development guides and the specification guides. The project was implemented using the programming language Rust, and for the graphical interface, Gtk and the Gtk-rs module were used.
 <div style="display: flex; justify-content: space-between;">
     <img src="src/readme_images/send.png" alt="Send Image">
     <img src="src/readme_images/send.png" alt="Account Image">
@@ -21,7 +19,8 @@ El objetivo principal del proyecto fue la creacion de un nodo de bitcoin siguien
 
 <div align="center">
 
-## Funcionalidades del nodo 
+## Node Functionalities
+
 
 </div>
 
@@ -29,16 +28,16 @@ El objetivo principal del proyecto fue la creacion de un nodo de bitcoin siguien
   <img src="src/readme_images/node.png" alt="Logo" width="80" height="80">
 </p>
 
-* **Descarga de Headers y Bloques**: El nodo es capaz de descargar y almacenar la cadena completa de `Headers` desde el inicio de la blockchain y los `bloques` completos a partir de la fecha de inicio del proyecto (10/04/23)
-* **Conexion a otros Nodos peers**: El nodo es capaz de obtener mediante una DNS configurada ips de nodos activos y conectarse a estos realizando el `handshake` segun indica el protocolo de bitcoin.
-* **Recibimiento de nuevos bloques**: El nodo es capaz de recibir nuevos bloques boradcasteados por otros nodos y guardarlos en la cadena de bloques y headers local
-* **Validacion de bloques**: El nodo es capaz de validar cada nuevo bloque que llega mediante la `proof of work` del bloque recibido y la `proof of inclusion` de las transacciones del bloque, generando el `Merkle Tree` con las transacciones del bloque y comparando el Merkle Root generado con el especificado en el header del Bloque.
-* **Seguimiento del UTXO set**: El nodo es capaz de mantener en todo momento la lista de `unspent transactions` de manera de poder utilizar la misma para realizar transacciones
-* **Merkle proof of inclusion**: El nodo es capaz de, dada una transaccion y un bloque, devolver una merkle proof of inclusion, para que el usuario pueda verificar la existencia de la transaccion en el bloque.
+* **Download of Headers and Blocks**: The node is capable of downloading and storing the complete chain of Headers from the beginning of the blockchain and the complete blocks starting from the project's inception date (10/04/23).
+* **Connection to Other Peer Nodes**: The node is capable of obtaining IP addresses of active nodes through a configured DNS and connecting to them by performing the handshake as indicated by the Bitcoin protocol. Throughout the whole project **Tcp connections** were used.
+* **Reception of New Blocks**: The node is capable of receiving new blocks broadcasted by other nodes and saving them in the local blockchain and headers.
+* **Block Validation**: The node is capable of validating each new block that arrives through the proof of work of the received block and the proof of inclusion of the block's transactions, generating the Merkle Tree with the block's transactions and comparing the generated Merkle Root with the one specified in the block's header.
+* **UTXO Set Tracking**: The node is capable of maintaining the list of unspent transactions at all times, allowing it to use the same for performing transactions.
+* **Merkle Proof of Inclusion**: The node is capable of providing a Merkle proof of inclusion given a transaction and a block, allowing the user to verify the existence of the transaction in the block.
 
 <div align="center">
 
-## Funcionalidades de la Wallet 
+## Wallet Functionalities
 
 </div>
 <p align="center">
@@ -47,51 +46,65 @@ El objetivo principal del proyecto fue la creacion de un nodo de bitcoin siguien
 
 
 
-* **Soporte para multiples cuentas**: El usuario puede ingresar una o mas cuentas que controla, especificando la clave publica y privada de cada una.
-* **Balance de cuenta**: Para cada cuenta se puede visualizar el balance de la misma.
-* **Notificacion sobre transaccion pendiente**: Cada vez que se recibe una transaccion pendiente por la red se notifica al usuario que una transaccion que lo involucra esta pendiente.
-* **Notificacion sobre transaccion confirmadas**: Cada vez que se recibe un nuevo bloque confirmado, se notifica al usuario si alguna transaccion confiramda se encuentra en dicho bloque, y la muestra como confirmada en la interfaz.
-* **Transacciones**: En todo momento, el usuario puede realizar transacciones desde una cuenta de la wallet ingresando la informacion necesaria. Soporta transacciones [P2PKH](https://academy.bit2me.com/que-es-p2pkh/). La transaccion generada se comunica al resto de los nodos para que la validen y pueda ser confirmada en un bloque.
-* **Prueba de inclusion**: El ususario puede pedir una prueba de inclusion de una transaccion en un bloque y verificarla localmente.
 
-### Archivo de configuracion
-El archivo de configuracion `nodo.conf` contiene todas las configuraciones del programa y cambiando ese archivo se puede cambiar la cantidad de bloques/headers a descargar, cuantos persistir, la red a la cual conectarse (mainnet o testnet), conectarse a nodos especificos, cantidad de nodos a conectarse y varias opciones mas.
+* **Support for Multiple Accounts**: The user can input one or more accounts they control, specifying the public and private key for each.
+* **Account Balance**: The balance for each account can be viewed.
+* **Pending Transaction Notification**: Whenever a pending transaction is received from the network, the user is notified that a transaction involving them is pending.
+* **Confirmed Transaction Notification**: Whenever a new confirmed block is received, the user is notified if any confirmed transactions are included in the block, and they are shown as confirmed in the interface.
+* **Transactions**: At any time, the user can perform transactions from a wallet account by entering the necessary information. It supports [P2PKH](https://learnmeabitcoin.com/technical/p2pkh) transactions. The generated transaction is broadcasted to the rest of the nodes for validation and can be confirmed in a block.
+* **Proof of Inclusion**: The user can request a proof of inclusion for a transaction in a block and verify it locally.
+
+### Configuration File
+The configuration file node.conf contains all program configurations, and by modifying this file, you can change the number of blocks/headers to download, how many to persist, the network to connect to (mainnet or testnet), specific nodes to connect to, the number of nodes to connect to, and various other options.
 ### Logs
-Cuando el programa se corre automaticamente se crea una carpeta `logs` en donde se encuentran los detalles del flujo del programa y su estado. En `info.txt` se puede encontrar informacion general y util sobre el estado del nodo, en `error.txt` se pueden encontrar los distintos errores que hubo y en `messages.txt` se encuentran todos los mensajes que recibe nuestro nodo de otros peers.
-### Interfaz grafica
-El programa cuenta con una interfaz grafica muy user-friendly en la cual el usuario puede interactuar con la wallet de manera dinamica y facil. Al inciar el programa se muestra la descarga de la blockchain y su estado. Luego se muestran las siguientes ventanas:
-* **Overview**: Muestra lo mas importante sobre la cuenta que esta seleccionada en ese momento: balance, address de la cuenta y transacciones recientes.
-* **Send**: Muestra los campos a completar para poder hacer una transaccion desde la cuenta que esta seleccionada.
-* **Transactions**: Muestra todas las transacciones realizadas por la cuenta seleccionada. Tambien permite hacer una prueba de inclusion proporcionando la informacion pedida.
-* **Blocks**: Muestra los ultimos bloques descargados y cuenta con una barra de busqueda para poder visualizar la informacion de cualquiera de los bloques que hayan sido descargados localmente
-* **Headers**: Muestra los ultimos y los primeros headers descargados y cuenta con una barra de busqueda para poder visualizar la informacion de cualquiera de los bloques que hayan sido descargados localmente.
-* **Account**: Muestra la cuenta que esta seleccionada y permite ingresar una nueva cuenta a la wallet.
-## Requisitos
-* Tener instalado `Rust` (se puede descargar de la pagina oficial https://www.rust-lang.org/tools/install)
-* Tener insalado `Gtk3` (https://www.gtk.org/docs/installations/linux)
-## Modo de uso
-Para ejecutar el programa con UI es necesario navegar al directorio donde se encuentra el proyecto y correr en la terminal
-```sh
+When the program runs, it automatically creates a `logs` folder where program flow details and status are stored. In `info.txt`, you can find general and useful information about the node's status. `error.txt` contains different encountered errors, and `messages.txt` stores all the messages our node receives from other peers.
+### Graphical User Interface
+
+The program features a very user-friendly graphical interface in which the user can interact with the wallet dynamically and easily. Upon starting the program, the blockchain download and its status are displayed. Subsequently, the following windows are shown:
+* **Overview**: Displays the most important information about the currently selected account: balance, account address, and recent transactions.
+* **Send**: Presents the fields to be completed in order to initiate a transaction from the currently selected account.
+* **Transactions**: Shows all transactions carried out by the selected account. It also allows for a proof of inclusion test by providing the requested information.
+* **Blocks**: Displays the latest downloaded blocks and features a search bar to visualize information about any of the locally downloaded blocks.
+* **Headers**: Shows both the latest and initial headers downloaded, equipped with a search bar to view information about any of the locally downloaded blocks.
+* **Account**: Displays the currently selected account and allows the addition of a new account to the wallet.
+
+## Prerequisites
+
+* Have `Rust` installed (can be downloaded from the official website: https://www.rust-lang.org/tools/install)
+* Have `Gtk3` installed (https://www.gtk.org/docs/installations/linux)
+## Installation and Running the Node
+1. Clone or download this repository to your local machine.
+2. Open a terminal and navigate to the directory where the project is located using the `cd` command.
+3. Make sure to have `Rust` and the package manager `Cargo` installed (it comes automatically when you install Rust), and ensure that you have `Gtk3` installed.
+   
+To run the program **with a UI**, navigate to the directory where the project is located and execute the following command in the terminal:
+```
    cargo run nodo.conf -i
 ```
 
-En caso de querer ejecutar la aplicacion sin UI y querer interactuar con la wallet mediante una pseudo-interfaz por la terminal, se debera correr
-
-```sh
+If you wish to run the application **without a UI** and interact with the wallet through a pseudo-interface in the terminal, you should run:
+```
    cargo run nodo.conf
 ```
-## Bibliografia util y diagramas
+## Useful References and Diagrams
+### Bibliography:
+* [Bitcoin Developer Documentation](https://developer.bitcoin.org/devguide/index.html)
+* [Bitcoin Protocol Specification](https://developer.bitcoin.org/reference/index.html)
+* [Rust Programming Language](https://www.rust-lang.org/)
+* [Gtk - The GIMP Toolkit](https://www.gtk.org/)
+* [Gtk-rs - Rust bindings for Gtk](https://gtk-rs.org/)
+* [P2PKH Transactions Explained](https://academy.bit2me.com/que-es-p2pkh/)
+### Diagrams, presentations and reports (Spanish 🇦🇷)
+* **Diagrams**: https://lucid.app/documents/view/24778bc5-a35d-4e87-a5ad-c2552bd2a0ec
+* **Presentation intermediate deliver**: https://www.canva.com/design/DAFjmdv7rnM/IeBxNe9kYaOrCZaoz6f55w/edit?utm_content=DAFjmdv7rnM&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton
+* **Presentation end deliver**: https://www.canva.com/design/DAFm19ESnFU/V6mXLL9rlMYIW4rqmKbV5A/edit?utm_content=DAFm19ESnFU&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton
+* **Final presentation**: https://www.canva.com/design/DAFqmYD30IA/Q1KVnpzEvug8lWd8ri6kjQ/edit?utm_content=DAFqmYD30IA&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton
+* **Report with detailed explanation of the project**: https://docs.google.com/document/d/1p5l8UjiY5e11kFwzyFX7NvbX8w49kqBh/edit
 
-* **Diagramas**: https://lucid.app/documents/view/24778bc5-a35d-4e87-a5ad-c2552bd2a0ec
-* **Presentacion Entrega Intermedia**: https://www.canva.com/design/DAFjmdv7rnM/IeBxNe9kYaOrCZaoz6f55w/edit?utm_content=DAFjmdv7rnM&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton
-* **Presentacion Entrega Fin Cursada**: https://www.canva.com/design/DAFm19ESnFU/V6mXLL9rlMYIW4rqmKbV5A/edit?utm_content=DAFm19ESnFU&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton
-* **Presentacion Entrega Final**: https://www.canva.com/design/DAFqmYD30IA/Q1KVnpzEvug8lWd8ri6kjQ/edit?utm_content=DAFqmYD30IA&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton
-### Informe con explicacion detallada del proyecto
 
-https://docs.google.com/document/d/1p5l8UjiY5e11kFwzyFX7NvbX8w49kqBh/edit
-
-## Miembros del grupo
-- Facundo De La Plata
-- Alan Cantero
-- Martin Bucca
+This project was proposed and guided by [Taller de Programacion I (Deymonnaz)](https://taller-1-fiuba-rust.github.io/), [Facultad de Ingenieria](http://www.fi.uba.ar/), [Universidad de Buenos Aires](https://www.uba.ar/).
+This project was jointly elaborated with:
+- [Facundo De La Plata](https://github.com/FaCu97)
+- [Alan Cantero](https://github.com/CanteroAlann)
+  
 
