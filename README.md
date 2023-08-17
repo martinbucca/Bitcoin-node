@@ -10,6 +10,9 @@
 - [Node Functionalities](#node-functionalities)
 - [Wallet functionalities](#wallet-functionalities)
 - [Specifications](#specifications)
+ 	- [Configuration file](#configuration-file)
+  - [Logs](#logs)
+	- [Graphical User Interface](#graphical-user-interface)
 - [Prerequisites](#prerequisites)
 - [Installation and running the node](#installation-and-running-the-node)
 - [Documentation](#documentation)
@@ -117,11 +120,11 @@ To view the detailed documentation for this project, un the following command in
 * [P2PKH Transactions Explained](https://academy.bit2me.com/que-es-p2pkh/)
   
 ℹ️ **Diagrams, presentations and reports (Spanish 🇦🇷)**
-* **Diagrams**: https://lucid.app/documents/view/24778bc5-a35d-4e87-a5ad-c2552bd2a0ec
-* **First Presentation (intermediate)**: https://www.canva.com/design/DAFjmdv7rnM/IeBxNe9kYaOrCZaoz6f55w/edit?utm_content=DAFjmdv7rnM&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton
-* **Second Presentation (end of class period)**: https://www.canva.com/design/DAFm19ESnFU/V6mXLL9rlMYIW4rqmKbV5A/edit?utm_content=DAFm19ESnFU&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton
-* **Final presentation**: https://www.canva.com/design/DAFqmYD30IA/Q1KVnpzEvug8lWd8ri6kjQ/edit?utm_content=DAFqmYD30IA&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton
-* **Report with detailed explanation of the project**: https://docs.google.com/document/d/1p5l8UjiY5e11kFwzyFX7NvbX8w49kqBh/edit
+* [Diagrams](https://lucid.app/documents/view/24778bc5-a35d-4e87-a5ad-c2552bd2a0ec)
+* [First Presentation (intermediate)](https://www.canva.com/design/DAFjmdv7rnM/IeBxNe9kYaOrCZaoz6f55w/edit?utm_content=DAFjmdv7rnM&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton) 
+* [Second Presentation (end of class period)](https://www.canva.com/design/DAFm19ESnFU/V6mXLL9rlMYIW4rqmKbV5A/edit?utm_content=DAFm19ESnFU&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton)
+* [Final presentation](https://www.canva.com/design/DAFqmYD30IA/Q1KVnpzEvug8lWd8ri6kjQ/edit?utm_content=DAFqmYD30IA&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton)
+* [Report with detailed explanation of the project](https://docs.google.com/document/d/1p5l8UjiY5e11kFwzyFX7NvbX8w49kqBh/edit)
 
 ## Contributors
 
