@@ -9,10 +9,11 @@
 - [About the project](#about-the-project)
 - [Node Functionalities](#node-functionalities)
 - [Wallet functionalities](#hello)
+- [Specifications](#specifications)
 - [Prerequisites](#prerequisites)
 - [Installation and running the node](#installation-and-running-the-node)
 - [Documentation](#documentation)
-- [References and Diagrams](#useful-references-and-diagrams)
+- [Useful References and Diagrams](#useful-references-and-diagrams)
 - [Contributors](#contributors)
 ## About the project
 The main objective of the project was the creation of a Bitcoin node following the development guides and the specification guides. The project was implemented using the programming language Rust, and for the graphical interface, Gtk and the Gtk-rs module were used.
@@ -70,13 +71,15 @@ The main objective of the project was the creation of a Bitcoin node following t
 ✔️ **Transactions**: At any time, the user can perform transactions from a wallet account by entering the necessary information. It supports [P2PKH](https://learnmeabitcoin.com/technical/p2pkh) transactions. The generated transaction is broadcasted to the rest of the nodes for validation and can be confirmed in a block.
 
 ✔️ **Proof of Inclusion**: The user can request a proof of inclusion for a transaction in a block and verify it locally.
+## Specifications
 
 ### Configuration File
 The configuration file node.conf contains all program configurations, and by modifying this file, you can change the number of blocks/headers to download, how many to persist, the network to connect to (mainnet or testnet), specific nodes to connect to, the number of nodes to connect to, and various other options.
+
 ### Logs
 When the program runs, it automatically creates a `logs` folder where program flow details and status are stored. In `info.txt`, you can find general and useful information about the node's status. `error.txt` contains different encountered errors, and `messages.txt` stores all the messages our node receives from other peers.
-### Graphical User Interface
 
+### Graphical User Interface
 The program features a very user-friendly graphical interface in which the user can interact with the wallet dynamically and easily. Upon starting the program, the blockchain download and its status are displayed. Subsequently, the following windows are shown:
 * **Overview**: Displays the most important information about the currently selected account: balance, account address, and recent transactions.
 * **Send**: Presents the fields to be completed in order to initiate a transaction from the currently selected account.
@@ -111,14 +114,15 @@ To view the detailed documentation for this project, un the following command in
 ```
 
 ## Useful References and Diagrams
-### Bibliography:
+📚 **Bibliography**:
 * [Bitcoin Developer Documentation](https://developer.bitcoin.org/devguide/index.html)
 * [Bitcoin Protocol Specification](https://developer.bitcoin.org/reference/index.html)
 * [Rust Programming Language](https://www.rust-lang.org/)
 * [Gtk - The GIMP Toolkit](https://www.gtk.org/)
 * [Gtk-rs - Rust bindings for Gtk](https://gtk-rs.org/)
 * [P2PKH Transactions Explained](https://academy.bit2me.com/que-es-p2pkh/)
-### Diagrams, presentations and reports (Spanish 🇦🇷)
+  
+ℹ️ **Diagrams, presentations and reports (Spanish 🇦🇷)**
 * **Diagrams**: https://lucid.app/documents/view/24778bc5-a35d-4e87-a5ad-c2552bd2a0ec
 * **First Presentation (intermediate)**: https://www.canva.com/design/DAFjmdv7rnM/IeBxNe9kYaOrCZaoz6f55w/edit?utm_content=DAFjmdv7rnM&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton
 * **Second Presentation (end of class period)**: https://www.canva.com/design/DAFm19ESnFU/V6mXLL9rlMYIW4rqmKbV5A/edit?utm_content=DAFm19ESnFU&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton
