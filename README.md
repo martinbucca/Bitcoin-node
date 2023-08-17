@@ -21,11 +21,6 @@
   
 ## About the project
 The main objective of the project was the creation of a Bitcoin node following the development guides and the specification guides. The project was implemented using the programming language Rust, and for the graphical interface, Gtk and the Gtk-rs module were used.
-# Mi Proyecto
-
-Descripción de tu proyecto.
-
-## Imágenes
 
 <div align="center">
   <img src="src/readme_images/headers.gif" width="400" height="300"/>
