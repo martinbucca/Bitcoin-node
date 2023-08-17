@@ -8,13 +8,14 @@
 ## Table of Contents
 - [About the project](#about-the-project)
 - [Node Functionalities](#node-functionalities)
-- [Wallet functionalities](#hello)
+- [Wallet functionalities](#wallet-functionalities)
 - [Specifications](#specifications)
 - [Prerequisites](#prerequisites)
 - [Installation and running the node](#installation-and-running-the-node)
 - [Documentation](#documentation)
 - [Useful References and Diagrams](#useful-references-and-diagrams)
 - [Contributors](#contributors)
+  
 ## About the project
 The main objective of the project was the creation of a Bitcoin node following the development guides and the specification guides. The project was implemented using the programming language Rust, and for the graphical interface, Gtk and the Gtk-rs module were used.
 <div style="display: flex; justify-content: space-between;">
@@ -27,8 +28,6 @@ The main objective of the project was the creation of a Bitcoin node following t
 <div align="center">
   
 ## Node Functionalities
-
-
 </div>
 
 <p align="center">
@@ -49,16 +48,11 @@ The main objective of the project was the creation of a Bitcoin node following t
 
 <div align="center">
 
-<a name="hello"></a>
 ## Wallet Functionalities
-
 </div>
 <p align="center">
   <img src="src/readme_images/wallet.png" alt="Logo" width="80" height="80">
 </p>
-
-
-
 
 ✔️ **Support for Multiple Accounts**: The user can input one or more accounts they control, specifying the public and private key for each.
 
@@ -71,14 +65,12 @@ The main objective of the project was the creation of a Bitcoin node following t
 ✔️ **Transactions**: At any time, the user can perform transactions from a wallet account by entering the necessary information. It supports [P2PKH](https://learnmeabitcoin.com/technical/p2pkh) transactions. The generated transaction is broadcasted to the rest of the nodes for validation and can be confirmed in a block.
 
 ✔️ **Proof of Inclusion**: The user can request a proof of inclusion for a transaction in a block and verify it locally.
-## Specifications
 
+## Specifications
 ### Configuration File
 The configuration file node.conf contains all program configurations, and by modifying this file, you can change the number of blocks/headers to download, how many to persist, the network to connect to (mainnet or testnet), specific nodes to connect to, the number of nodes to connect to, and various other options.
-
 ### Logs
 When the program runs, it automatically creates a `logs` folder where program flow details and status are stored. In `info.txt`, you can find general and useful information about the node's status. `error.txt` contains different encountered errors, and `messages.txt` stores all the messages our node receives from other peers.
-
 ### Graphical User Interface
 The program features a very user-friendly graphical interface in which the user can interact with the wallet dynamically and easily. Upon starting the program, the blockchain download and its status are displayed. Subsequently, the following windows are shown:
 * **Overview**: Displays the most important information about the currently selected account: balance, account address, and recent transactions.
@@ -89,9 +81,9 @@ The program features a very user-friendly graphical interface in which the user 
 * **Account**: Displays the currently selected account and allows the addition of a new account to the wallet.
 
 ## Prerequisites
-
 * Have `Rust` installed (can be downloaded from the official website: https://www.rust-lang.org/tools/install)
 * Have `Gtk3` installed (https://www.gtk.org/docs/installations/linux)
+  
 ## Installation and Running the Node
 1. Clone or download this repository to your local machine.
 2. Open a terminal and navigate to the directory where the project is located using the `cd` command.
@@ -106,6 +98,7 @@ If you wish to run the application **without a UI** and interact with the wallet
 ```
    cargo run nodo.conf
 ```
+
 ## Documentation
 
 To view the detailed documentation for this project, un the following command in your terminal from the project's root directory:
@@ -114,6 +107,7 @@ To view the detailed documentation for this project, un the following command in
 ```
 
 ## Useful References and Diagrams
+
 📚 **Bibliography**:
 * [Bitcoin Developer Documentation](https://developer.bitcoin.org/devguide/index.html)
 * [Bitcoin Protocol Specification](https://developer.bitcoin.org/reference/index.html)
