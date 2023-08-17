@@ -21,9 +21,25 @@
   
 ## About the project
 The main objective of the project was the creation of a Bitcoin node following the development guides and the specification guides. The project was implemented using the programming language Rust, and for the graphical interface, Gtk and the Gtk-rs module were used.
-<div style="display: flex; justify-content: space-between;">
-    <img src="src/readme_images/send.png" alt="Send Image">
-    <img src="src/readme_images/send.png" alt="Account Image">
+# Mi Proyecto
+
+Descripción de tu proyecto.
+
+## Imágenes
+
+<div align="center">
+  <img src="src/readme_images/headers.gif" width="500" height="400"/>
+  <img src="src/readme_images/send_tx.gif" width="500" height="400"/>
+</div>
+
+<div align="center">
+  <img src="src/readme_images/overview.png" width="500" height="400"/>
+  <img src="src/readme_images/transactions.png" width="500" height="400"/>
+</div>
+
+<div align="center">
+  <img src="src/readme_images/search_block.gif" width="500" height="400"/>
+  <img src="src/readme_images/accounts.png" width="500" height="400"/>
 </div>
 
 
