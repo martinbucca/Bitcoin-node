@@ -28,18 +28,18 @@ Descripción de tu proyecto.
 ## Imágenes
 
 <div align="center">
-  <img src="src/readme_images/headers.gif" width="500" height="400"/>
-  <img src="src/readme_images/send_tx.gif" width="500" height="400"/>
+  <img src="src/readme_images/headers.gif" width="400" height="300"/>
+  <img src="src/readme_images/send_tx.gif" width="400" height="300"/>
 </div>
 
 <div align="center">
-  <img src="src/readme_images/overview.png" width="500" height="400"/>
-  <img src="src/readme_images/transactions.png" width="500" height="400"/>
+  <img src="src/readme_images/overview.png" width="400" height="300"/>
+  <img src="src/readme_images/transactions.png" width="400" height="300"/>
 </div>
 
 <div align="center">
-  <img src="src/readme_images/search_block.gif" width="500" height="400"/>
-  <img src="src/readme_images/accounts.png" width="500" height="400"/>
+  <img src="src/readme_images/search_block.gif" width="400" height="300"/>
+  <img src="src/readme_images/accounts.png" width="400" height="300"/>
 </div>
 
 
