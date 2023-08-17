@@ -10,8 +10,8 @@
 - [Node Functionalities](#node-functionalities)
 - [Wallet functionalities](#wallet-functionalities)
 - [Specifications](#specifications)
- 	- [Configuration file](#configuration-file)
-  - [Logs](#logs)
+	- [Configuration file](#configuration-file)
+  	- [Logs](#logs)
 	- [Graphical User Interface](#graphical-user-interface)
 - [Prerequisites](#prerequisites)
 - [Installation and running the node](#installation-and-running-the-node)
@@ -87,7 +87,7 @@ The program features a very user-friendly graphical interface in which the user 
 * Have `Rust` installed (can be downloaded from the official website: https://www.rust-lang.org/tools/install)
 * Have `Gtk3` installed (https://www.gtk.org/docs/installations/linux)
   
-## Installation and Running the Node
+## Installation and Running the Node 💻
 1. Clone or download this repository to your local machine.
 2. Open a terminal and navigate to the directory where the project is located using the `cd` command.
 3. Make sure to have `Rust` and the package manager `Cargo` installed (it comes automatically when you install Rust), and ensure that you have `Gtk3` installed.
@@ -102,7 +102,7 @@ If you wish to run the application **without a UI** and interact with the wallet
    cargo run nodo.conf
 ```
 
-## Documentation
+## Documentation 📖
 
 To view the detailed documentation for this project, un the following command in your terminal from the project's root directory:
 ```
