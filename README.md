@@ -115,7 +115,7 @@ If you wish to run the application **without a UI** and interact with the wallet
 
 ## Documentation 📖
 
-To view the detailed documentation for this project, un the following command in your terminal from the project's root directory:
+To view the detailed documentation for this project, run the following command in your terminal from the project's root directory:
 ```
    cargo doc --open
 ```
